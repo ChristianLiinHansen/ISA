@@ -1,12 +1,26 @@
 #include "ros/ros.h"
 #include "std_msgs/String.h"
 
+// Trying to do the msg sending.
+//#include <isa_project/num.h>
+#include <isa_project/r_and_theta.h>
+
 /**
  * This tutorial demonstrates simple receipt of messages over the ROS system.
  */
-void chatterCallback(const std_msgs::String::ConstPtr& msg)
+//void chatterCallback(const std_msgs::String::ConstPtr& msg)
+//{
+//	//ROS_INFO("I heard: [%s]", msg->data.c_str());
+//	std::cout << "I head this string: " << msg-> data << std::endl;
+//}
+
+void r_and_thetaCallBack(const isa_project::r_and_theta::ConstPtr& msg)
 {
-  ROS_INFO("I heard: [%s]", msg->data.c_str());
+	double r = msg-> r;
+	double theta = msg-> theta;
+	
+	std::cout << "I head this float64: " << r << std::endl;
+	std::cout << "I head this float64: " << theta << std::endl;	
 }
 
 int main(int argc, char **argv)
@@ -45,8 +59,9 @@ int main(int argc, char **argv)
    * is the number of messages that will be buffered up before beginning to throw
    * away the oldest ones.
    */
-  ros::Subscriber sub = n.subscribe("chatter", 1000, chatterCallback);
-
+  //ros::Subscriber sub = n.subscribe("chatter", 1000, chatterCallback);
+  //ros::Subscriber test_sub = n.subscribe("/testing_num", 1000, testCallback);
+  ros::Subscriber r_and_theta_sub = n.subscribe("/r_and_theta", 1000, r_and_thetaCallBack);
   /**
    * ros::spin() will enter a loop, pumping callbacks.  With this version, all
    * callbacks will be called from within this thread (the main one).  ros::spin()

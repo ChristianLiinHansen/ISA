@@ -5,6 +5,10 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
 
+// Trying to do the msg sending.
+//#include <isa_project/num.h>
+#include <isa_project/r_and_theta.h>
+
 #include <opencv2/opencv.hpp>
 #include <opencv2/core/core.hpp>
 
@@ -16,9 +20,7 @@
 
 using namespace cv;
 using namespace std;
-/**
- * This tutorial demonstrates simple sending of messages over the ROS system.
- */
+
 
 vector<Mat> GetRGB(Mat image)
 {
@@ -196,46 +198,6 @@ vector< vector < Point > > Function(Point2f random1, Point2f random2, vector< Po
 	vector< Point > bestPoints;
 	vector< vector < Point> > vectorTrain;
 
-	/*
-	int inlierThreshold = 0;
-	int bestInlierCount = 0;
-	Point2f bestPoint1;
-	Point2f bestPoint2;
-	vector< Point > bestPoints;
-
-	Mat temp;
-	image.copyTo(temp);
-
-	// The vector12 is starting from random1 and goes in direction toward random2.
-	Point2f vector12;
-	vector12 = random2-random1;
-	//cout << "vector12: " << vector12 << endl;
-
-	// Calculate the pendicular vector vector12_hat
-	Point2f vector12_hat;
-	vector12_hat.x = vector12.y;
-	vector12_hat.y = vector12.x*-1;
-	//cout << "vector12_hat is: " << vector12_hat << endl;
-
-
-	// Calculate the length of vector vector12_hat
-	double vector12_hat_magnitude = sqrt(vector12_hat.x*vector12_hat.x + vector12_hat.y*vector12_hat.y);
-	//cout << "vector12_hat_length is: " << vector12_hat_magnitude << endl;
-
-	// Calculate the unit vector
-	Point2f vector12_hat_norm;
-	vector12_hat_norm.x = (double)vector12_hat.x / vector12_hat_magnitude;
-	vector12_hat_norm.y = (double)vector12_hat.y / vector12_hat_magnitude;
-	//cout << "vector12_hat_norm is: " << vector12_hat_norm << endl;
-
-	// Calculate the vector1Q, which is the vector from random1 to the point Q that should be decided if that is an inlier
-	// or not. So looking in the vector with points is needed.
-	Point2f vector1Q;
-	double project_1Q_to_n;
-	int inlierCounter = 0;
-	int outlierCounter = 0;
-	 */
-
 	// Run trough the all the Q coordinates this line...
 	//int threshold;
 	for(int i = 0; i< circle_centroids.size(); i++ )
@@ -284,35 +246,7 @@ vector< vector < Point > > Function(Point2f random1, Point2f random2, vector< Po
 	// Could also just say return a vector of a vector with points.
 	// vector < vector < points > >
 	// Then the first vector that is returned is all the inliers, and the next vector is just the bestPoint1+2.
-
-	/*
-	// Now all the coordinates has been ran trough for each line
-	if (inlierCounter > inlierThreshold)
-	{
-		//cout << "Now there is a line that exeeded " << inlierThreshold << endl;
-
-		// So now the number of inliers is greater than the inlierThreshold, and therefore we save the best inlier count
-		bestInlierCount = inlierCounter;
-
-		// Then we set the inlier threshold so we only increase if we exceed again..
-		inlierThreshold = bestInlierCount;
-
-		// And we store the two points that was the best
-		bestPoint1 = random1;
-		bestPoint2 = random2;
-
-		bestPoints.push_back(bestPoint1);
-		bestPoints.push_back(bestPoint2);
-	}
-	else
-	{
-		// Did not exceed the best inlier count... so do nothing and try again up to K tries.
-	}
-	*/
-
-	//cout << "The bestInlierCount ended at: " << bestInlierCount << endl;
-	//imshow("RANSAC result", temp);
-
+	
 	return vectorTrain;
 }
 
@@ -388,37 +322,14 @@ void DrawResult(Mat image, Point pointA, Point pointB, int pendicularDistance)
 
 vector<double> GetAngleInDegree(Point bestPoint1, Point bestPoint2)
 {
-	/*
-	// Get the delta in x and y due to the two points.
-	int delta_x = abs(bestPoint1.x - bestPoint2.x);
-	int delta_y = abs(bestPoint1.y - bestPoint2.y);
-	cout << " delta_x: " << delta_x << endl;
-	cout << " delta_y: " << delta_y << endl;
-
-	// Calculate the length between these points
-	double l = sqrt(delta_x*delta_x + delta_y*delta_y);
-	cout << " l: " << l << endl;
-
-	// Calculate the angle. Multiply by 180/pi to get rad2degree
-	double phi = (180/M_PI)* acos(delta_x/l);
-	cout << " phi: " << phi << endl;
-
-	// Then the other angle is.
-	double theta = 90-phi;
-	cout << "theta is: " << theta << " degrees"<< endl;
-	*/
-	// This was not quite working under test... Was mostly -90 in theta even when the angle changed.
-
-	// return vector
-
 	vector<double> returnVector;
 
 	// What I have to do is find the coordinate of where the r vector ends.
 	double x = bestPoint2.x - bestPoint1.x;
 	double y = bestPoint2.y - bestPoint1.y;
 
-	cout << "bestPoint1 is: (" << bestPoint1.x << "," << bestPoint1.y << ")" << endl;
-	cout << "bestPoint2 is: (" << bestPoint2.x << "," << bestPoint2.y << ")" << endl;
+	//cout << "bestPoint1 is: (" << bestPoint1.x << "," << bestPoint1.y << ")" << endl;
+	//cout << "bestPoint2 is: (" << bestPoint2.x << "," << bestPoint2.y << ")" << endl;
 
 	// Put the x,y coordinate into the vector
 	returnVector.push_back(x);
@@ -433,28 +344,28 @@ vector<double> GetAngleInDegree(Point bestPoint1, Point bestPoint2)
 	if (x > 0)
 	{
 		theta = atan2(y,x);
-		cout << "x is: " << x << " and y is: " << y << endl;
-		cout << "x > 0 so, theta is: " << theta << endl;
+		//cout << "x is: " << x << " and y is: " << y << endl;
+		//cout << "x > 0 so, theta is: " << theta << endl;
 	}
 	else if (y >= 0 && x < 0)
 	{
 		theta = atan2(y,x) + (double)(M_PI);
-		cout << "y >= 0 && x < 0 so, theta is: " << theta << endl;
+		//cout << "y >= 0 && x < 0 so, theta is: " << theta << endl;
 	}
 	else if (y < 0 && x < 0)
 	{
 		theta = atan2(y,x) - (double)(M_PI);
-		cout << "y < 0 && x < 0 0 so, theta is: " << theta << endl;
+		//cout << "y < 0 && x < 0 0 so, theta is: " << theta << endl;
 	}
 	else if (y > 0 && x == 0)
 	{
 		theta = (double)(M_PI/2);
-		cout << "y > 0 && x == 0 so, theta is: " << theta << endl;
+		//cout << "y > 0 && x == 0 so, theta is: " << theta << endl;
 	}
 	else if (y < 0 && x == 0)
 	{
 		theta = -1*(double)(M_PI/2);
-		cout << "y < 0 && x == 0 so, theta is: " << theta << endl;
+		//cout << "y < 0 && x == 0 so, theta is: " << theta << endl;
 	}
 	else
 	{
@@ -514,9 +425,9 @@ vector<double> GetAngleInDegree(Point bestPoint1, Point bestPoint2)
 		// and subtract 360 degrees to get between 0 and -90
 		if (theta >= -360 && theta <= -270)
 		{
-			cout << "theta is: " << theta << endl;
+			//cout << "theta is: " << theta << endl;
 			theta = abs(theta)-180;
-			cout << "The angle is correct to: " << theta << endl;
+			//cout << "The angle is correct to: " << theta << endl;
 
 		}
 		else // Means (theta >= 0 && theta <= 90)
@@ -678,9 +589,13 @@ int main(int argc, char **argv)
    * than we can send them, the number here specifies how many messages to
    * buffer up before throwing some away.
    */
-	ros::Publisher chatter_pub = n.advertise<std_msgs::String>("chatter", 1000);
-
-	ros::Rate loop_rate(10);
+	//ros::Publisher chatter_pub = n.advertise<std_msgs::String>("chatter", 1000);
+	//ros::Publisher test_pub = n.advertise<isa_project::num>("/testing_num", 1);
+	ros::Publisher r_and_theta_pub = n.advertise<isa_project::r_and_theta>("/r_and_theta", 1);
+	//ros::Rate loop_rate(10);
+	
+	//isa_project::num msg;
+	isa_project::r_and_theta msg;
 
   /**
    * A count of how many messages we have sent. This is used to create
@@ -698,10 +613,10 @@ int main(int argc, char **argv)
 		// Note: 29/10-2014
 		// The camera input is not enabled yet, since decision node is not implemented yet
 		// I want to test the motors
-
+		
 		Mat inputImage;
-		inputImage = GetImageFromCamera(video);
-		//inputImage = imread("/home/christian/workspace_eclipseLuna/DisplayImage/src/indoorFinal1.jpg", CV_LOAD_IMAGE_COLOR);
+		//inputImage = GetImageFromCamera(video);
+		inputImage = imread("/home/christian/workspace_eclipseLuna/DisplayImage/src/indoorFinal1.jpg", CV_LOAD_IMAGE_COLOR);
 
 		// Here we do the rotation of the image
 		createTrackbar("Angle", "RANSAC_image", &iAngle, 360);
@@ -795,27 +710,48 @@ int main(int argc, char **argv)
 		imshow("RANSAC_image", RANSAC_image);
 		waitKey(1); // Wait 1 ms to make the imshow have time to show the image
 
-		/**
+		// Publish the r and theta trough ROS
+		msg.r = r;
+		msg.theta = theta;
+		
+		// And then we send it on the test_pub topic
+		r_and_theta_pub.publish(msg);
+		
+		// Spin once
+		//ros::spinOnce();
+
+		// sleep for the time remaining to let us hit our 10hz publish rate.
+		//loop_rate.sleep();
+	}
+
+	return 0;
+}
+
+//////////////////////////////
+// Garbage
+//////////////////////////////
+
+/**
 		  * This is a message object. You stuff it with data, and then publish it.
 		  */
 
-		// Meassage string object
-		std_msgs::String msg;
-
-		// String stream object
-		std::stringstream ss;
-
-		// Put text and data into the stringstream object ss
-		ss << "r:" << r << " " << "theta:" << theta;
-
-		// Store the object ss as a string as data in msg object.
-		msg.data = ss.str();
-
-		// This act like cout/printf. Only to show in console what we send. If we outcomment this
-		// the listener_node will still be able to get what we publish. The only difference
-		// is that we dont see what we send if we dont do ROS_INFO.
-		// Or we could do cout instead...
-		ROS_INFO("%s", msg.data.c_str());
+//		// Meassage string object
+//		std_msgs::String msg;
+//
+//		// String stream object
+//		std::stringstream ss;
+//
+//		// Put text and data into the stringstream object ss
+//		ss << "r:" << r << " " << "theta:" << theta;
+//
+//		// Store the object ss as a string as data in msg object.
+//		msg.data = ss.str();
+//
+//		// This act like cout/printf. Only to show in console what we send. If we outcomment this
+//		// the listener_node will still be able to get what we publish. The only difference
+//		// is that we dont see what we send if we dont do ROS_INFO.
+//		// Or we could do cout instead...
+//		ROS_INFO("%s", msg.data.c_str());
 
 		 /**
 		  * The publish() function is how you send messages. The parameter
@@ -825,14 +761,4 @@ int main(int argc, char **argv)
 		  */
 
 		// Now we actually broadcast the message to anyone who is connected.
-		chatter_pub.publish(msg);
-
-		//
-		ros::spinOnce();
-
-		// sleep for the time remaining to let us hit our 10hz publish rate.
-		loop_rate.sleep();
-	}
-
-	return 0;
-}
+		//chatter_pub.publish(msg);
