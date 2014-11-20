@@ -652,9 +652,10 @@ int main(int argc, char **argv)
         // I want to test the motors
 
         Mat inputImage;
-        //inputImage = GetImageFromCamera(video);
-        inputImage = imread("/home/christian/workspace_eclipseLuna/DisplayImage/src/indoorFinal1.jpg", CV_LOAD_IMAGE_COLOR);
+        inputImage = GetImageFromCamera(video);
+        //inputImage = imread("/home/christian/workspace_eclipseLuna/DisplayImage/src/indoorFinal1.jpg", CV_LOAD_IMAGE_COLOR);
 
+        // Set the xt_offset and yt_offset once
         if(flag)
         {
             xt_offset = inputImage.cols;
@@ -668,6 +669,7 @@ int main(int argc, char **argv)
         createTrackbar("Angle", "RANSAC_image", &iAngle, 360);
         createTrackbar("Translation x", "RANSAC_image", &xt, 2*inputImage.cols);
         createTrackbar("Translation y", "RANSAC_image", &yt, 2*inputImage.rows);
+
         Mat matRotation = getRotationMatrix2D( Point(inputImage.rows/2, inputImage.cols/2), (iAngle - 180), 1 );
 
         // Do some translation, by multipliing the rotation 2,3 with and 3,3, matrix to get the 2,3 translated and rotated matrix
@@ -687,7 +689,7 @@ int main(int argc, char **argv)
         imgRotatedAndTranslated.copyTo(inputImage);
 
         // Resize scale
-        int resizeScale = 3;
+        int resizeScale = 1;
         // Resize the image
         Size size(inputImage.cols/resizeScale,inputImage.rows/resizeScale);//the dst image size,e.g.100x100
         resize(inputImage,inputImage,size);//resize image
@@ -705,7 +707,7 @@ int main(int argc, char **argv)
         //Create the threshold - hardcodede at the moment 17/11-2014.
         createTrackbar("Threshold", "Thresholded image", &thresholdValue, 255);
         Mat treshold_img = GetThreshold(ExGR, thresholdValue);
-        imshow("Thresholded image", treshold_img);
+        //imshow("Thresholded image", treshold_img);
 
 
         // Do morphology to the image to limit the search with ransac.
@@ -717,7 +719,7 @@ int main(int argc, char **argv)
         // Get the contours and find the centroid x,y point, circle_centroids, for each contour
         vector< Point > circle_centroids;
         circle_centroids = GetContoursAndXY(erode_img);
-        cout << "number of circle_centroids is: " << circle_centroids.size() << endl;
+        //cout << "number of circle_centroids is: " << circle_centroids.size() << endl;
 
         // If there is not too many contours, then the image is relative noise free.
         if(circle_centroids.size() < 50)

@@ -19,8 +19,8 @@ void r_and_thetaCallBack(const isa_project::r_and_theta::ConstPtr& msg)
 	double r = msg-> r;
 	double theta = msg-> theta;
 	
-	std::cout << "I head this float64: " << r << std::endl;
-	std::cout << "I head this float64: " << theta << std::endl;	
+    //std::cout << "I head this float64: " << r << std::endl;
+    //std::cout << "I head this float64: " << theta << std::endl;
 }
 
 int main(int argc, char **argv)
