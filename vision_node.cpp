@@ -15,12 +15,17 @@
 #include <iostream>
 #include <stdio.h>
 #include <vector>
+#include <stdlib.h>     //for using the function sleep
 
 #include "std_msgs/String.h"
 
 using namespace cv;
 using namespace std;
 
+void test()
+{
+    cout << "this is a test" << endl;
+}
 
 vector<Mat> GetRGB(Mat image)
 {
@@ -547,12 +552,36 @@ Mat GetImageFromCamera(VideoCapture video)
 	return cameraFrame;
 }
 
+void CountDownSec(int sec)
+{
+    cout << "We count down " << sec << " secounds..." << endl;
+    for(int i = sec; i > 0; i--)
+    {
+        cout << i << endl;
+        waitKey(1000);
+    }
+    cout << "Starting..." << endl;
+}
 ///////////////////////////////////////////////////////////
 // The main function
 ///////////////////////////////////////////////////////////
 
+class TestClass
+{
+    public:
+    void coolSaying()
+    {
+        cout << "TEEEESSSTTTT of function" << endl;
+    }
+
+
+};
+
 int main(int argc, char **argv)
 {
+    TestClass object;
+    object.coolSaying();
+
 	/**
 	 * The ros::init() function needs to see argc and argv so that it can perform
 	 * any ROS arguments and name remapping that were provided at the command line. For programmatic
@@ -605,123 +634,164 @@ int main(int argc, char **argv)
 	double r;
 	double theta;
 	int iAngle = 180;
+    int thresholdValue = 50;
+    int xt = 0;
+    int yt = 0;
 
-	// Open the webcam
-	VideoCapture video = OpenCamera(0);
-	while (ros::ok())
-	{
-		// Note: 29/10-2014
-		// The camera input is not enabled yet, since decision node is not implemented yet
-		// I want to test the motors
-		
-		Mat inputImage;
-		//inputImage = GetImageFromCamera(video);
-		inputImage = imread("/home/christian/workspace_eclipseLuna/DisplayImage/src/indoorFinal1.jpg", CV_LOAD_IMAGE_COLOR);
+    // Open the webcam
+    VideoCapture video = OpenCamera(1);
+    // Count down the secounds before running to stabalize the camera
 
-		// Here we do the rotation of the image
-		createTrackbar("Angle", "RANSAC_image", &iAngle, 360);
-		Mat matRotation = getRotationMatrix2D( Point(inputImage.rows/2, inputImage.cols/2), (iAngle - 180), 1 );
+    bool flag = true;
+    while (ros::ok())
+    {
+        int xt_offset;
+        int yt_offset;
+        // Note: 29/10-2014
+        // The camera input is not enabled yet, since decision node is not implemented yet
+        // I want to test the motors
 
-		// Rotate the image
-		Mat imgRotated;
-		warpAffine(inputImage, imgRotated, matRotation, inputImage.size() );
+        Mat inputImage;
+        //inputImage = GetImageFromCamera(video);
+        inputImage = imread("/home/christian/workspace_eclipseLuna/DisplayImage/src/indoorFinal1.jpg", CV_LOAD_IMAGE_COLOR);
 
-		// Copy/overwrite the imgRotated over into inputImage
-		imgRotated.copyTo(inputImage);
+        if(flag)
+        {
+            xt_offset = inputImage.cols;
+            yt_offset = inputImage.rows;
+            xt = xt_offset;
+            yt = yt_offset;
+            flag = false;
+        }
 
-		// Resize scale
-		int resizeScale = 3;
-		// Resize the image
-		Size size(inputImage.cols/resizeScale,inputImage.rows/resizeScale);//the dst image size,e.g.100x100
-		resize(inputImage,inputImage,size);//resize image
+        // Here we do the rotation of the image
+        createTrackbar("Angle", "RANSAC_image", &iAngle, 360);
+        createTrackbar("Translation x", "RANSAC_image", &xt, 2*inputImage.cols);
+        createTrackbar("Translation y", "RANSAC_image", &yt, 2*inputImage.rows);
+        Mat matRotation = getRotationMatrix2D( Point(inputImage.rows/2, inputImage.cols/2), (iAngle - 180), 1 );
 
-		// Split the input image into R,G and B.
-		Mat R =	GetRGB(inputImage).at(2);
-		Mat G =	GetRGB(inputImage).at(1);
-		Mat B =	GetRGB(inputImage).at(0);
+        // Do some translation, by multipliing the rotation 2,3 with and 3,3, matrix to get the 2,3 translated and rotated matrix
+        Mat matTranslation = (cv::Mat_<double>(3,3) <<     1,0,1*(xt-xt_offset),
+                                                           0,1,1*(yt-yt_offset),
+                                                           0,0,1);
 
-		//Create the excessive green, red and the difference
-		Mat ExG = GetExcessiveRG(R,G,B).at(1);
-		Mat ExR = GetExcessiveRG(R,G,B).at(0);
-		Mat ExGR = ExG-ExR;
+        // Do the multiplication here to translate the image
+        Mat mult_M = matRotation * matTranslation;
 
-		//Create the threshold - hardcodede at the moment 17/11-2014.
-		int thresholdValue = 10;
-		Mat treshold_img = GetThreshold(ExGR, thresholdValue);
+        // Rotate the image after the translation.
+        Mat imgRotatedAndTranslated;
+        //warpAffine(inputImage, imgRotated, matRotation, inputImage.size() );
+        warpAffine(inputImage, imgRotatedAndTranslated, mult_M, inputImage.size() );
 
-		// Do morphology to the image to limit the search with ransac.
-		Mat erode_img, dilate_img;
-		int iterations = 1; // Tested with 1
-		erode(treshold_img,erode_img,Mat(),Point(-1, -1),iterations,BORDER_CONSTANT,morphologyDefaultBorderValue());
-		dilate(erode_img, dilate_img,Mat(),Point(-1, -1),iterations,BORDER_CONSTANT,morphologyDefaultBorderValue());
+        // Copy/overwrite the imgRotatedAndTranslated over into inputImage
+        imgRotatedAndTranslated.copyTo(inputImage);
 
-		// Get the contours and find the centroid x,y point, circle_centroids, for each contour
-		vector< Point > circle_centroids;
-		circle_centroids = GetContoursAndXY(erode_img);
+        // Resize scale
+        int resizeScale = 3;
+        // Resize the image
+        Size size(inputImage.cols/resizeScale,inputImage.rows/resizeScale);//the dst image size,e.g.100x100
+        resize(inputImage,inputImage,size);//resize image
 
-		// Draw the central coordinates for each contours on the final RANSAC image
-		Mat RANSAC_image;
-		RANSAC_image = DrawCoordinates(inputImage, circle_centroids, 255, 255, 255); // R,B,G. Between 0 and 255
+        // Split the input image into R,G and B.
+        Mat R =	GetRGB(inputImage).at(2);
+        Mat G =	GetRGB(inputImage).at(1);
+        Mat B =	GetRGB(inputImage).at(0);
 
-		// Make sure that there is at least two contours/point, so the RANSAC algorithm
-		// can work. Do not make sense to find a line between 0 or 1 point.
+        //Create the excessive green, red and the difference
+        Mat ExG = GetExcessiveRG(R,G,B).at(1);
+        Mat ExR = GetExcessiveRG(R,G,B).at(0);
+        Mat ExGR = ExG-ExR;
 
-		if(circle_centroids.size() < 2)
-		{
-			//cout << "Hey the size is < 2" << endl;
-			//cout << "so we skip the image..." << endl;
-		}
-		else
-		{
-			//cout << "Hey the size is >= 2" << endl;
-			//cout << "so we continue..." << endl;
+        //Create the threshold - hardcodede at the moment 17/11-2014.
+        createTrackbar("Threshold", "Thresholded image", &thresholdValue, 255);
+        Mat treshold_img = GetThreshold(ExGR, thresholdValue);
+        imshow("Thresholded image", treshold_img);
 
-			// Finding lines in the images using RANSAC
-			int triesLines = 1000; // Tested with 1000
-			double pendicularDistance = 20.0; // Tested with 10.0
-			vector < vector < Point > > resultFromRANSAC;
-			resultFromRANSAC = RANSAC_CLH(triesLines, pendicularDistance, circle_centroids);
 
-			vector<Point> bestPoints;
-			vector<Point> bestInliers;
-			bestInliers = resultFromRANSAC.at(0);
-			bestPoints = resultFromRANSAC.at(1);
+        // Do morphology to the image to limit the search with ransac.
+        Mat erode_img, dilate_img;
+        int iterations = 1; // Tested with 1
+        erode(treshold_img,erode_img,Mat(),Point(-1, -1),iterations,BORDER_CONSTANT,morphologyDefaultBorderValue());
+        dilate(erode_img, dilate_img,Mat(),Point(-1, -1),iterations,BORDER_CONSTANT,morphologyDefaultBorderValue());
 
-			// Draw the inliers
-			RANSAC_image = DrawCoordinates(RANSAC_image, bestInliers, 255, 0, 0); // B,G,R. Between 0 and 255
-			cout << "Number of inliers is: " << bestInliers.size() << endl;
+        // Get the contours and find the centroid x,y point, circle_centroids, for each contour
+        vector< Point > circle_centroids;
+        circle_centroids = GetContoursAndXY(erode_img);
+        cout << "number of circle_centroids is: " << circle_centroids.size() << endl;
 
-			// Draw the best fitted line for each image
-			DrawResult(RANSAC_image, bestPoints.at(0), bestPoints.at(1), pendicularDistance);
+        // If there is not too many contours, then the image is relative noise free.
+        if(circle_centroids.size() < 50)
+        {
+            // Draw the central coordinates for each contours on the final RANSAC image
+            Mat RANSAC_image;
+            RANSAC_image = DrawCoordinates(inputImage, circle_centroids, 255, 255, 255); // R,B,G. Between 0 and 255
 
-			vector<double> returnVector;
-			returnVector = GetAngleInDegree(bestPoints.at(0), bestPoints.at(1));
-			theta = returnVector.at(2);
-			r = GetR(bestPoints.at(0), bestPoints.at(1));
+            // Make sure that there is at least two contours/point, so the RANSAC algorithm
+            // can work. Do not make sense to find a line between 0 or 1 point.
 
-			// Add the values directly in the input image
-			AddInlierText(RANSAC_image, RANSAC_image.rows/15, RANSAC_image.rows/15, "r: ", (int)r);
-			AddInlierText(RANSAC_image, RANSAC_image.rows/8, RANSAC_image.rows/8, "theta: ", (int)theta);
+            if(circle_centroids.size() < 2)
+            {
+                //cout << "Hey the size is < 2" << endl;
+                //cout << "so we skip the image..." << endl;
+            }
+            else
+            {
+                //cout << "Hey the size is >= 2" << endl;
+                //cout << "so we continue..." << endl;
 
-			// Plot the r and theta in the terminal
-			//cout << "r: " << r << "\t" << " theta (degree): " << theta << endl;
-		}
+                // Finding lines in the images using RANSAC
+                int triesLines = 1000; // Tested with 1000
+                double pendicularDistance = 20.0; // Tested with 10.0
+                vector < vector < Point > > resultFromRANSAC;
+                resultFromRANSAC = RANSAC_CLH(triesLines, pendicularDistance, circle_centroids);
 
-		imshow("RANSAC_image", RANSAC_image);
-		waitKey(1); // Wait 1 ms to make the imshow have time to show the image
+                vector<Point> bestPoints;
+                vector<Point> bestInliers;
+                bestInliers = resultFromRANSAC.at(0);
+                bestPoints = resultFromRANSAC.at(1);
 
-		// Publish the r and theta trough ROS
-		msg.r = r;
-		msg.theta = theta;
-		
-		// And then we send it on the test_pub topic
-		r_and_theta_pub.publish(msg);
-		
-		// Spin once
-		//ros::spinOnce();
+                // Draw the inliers
+                RANSAC_image = DrawCoordinates(RANSAC_image, bestInliers, 255, 0, 0); // B,G,R. Between 0 and 255
+                //cout << "Number of inliers is: " << bestInliers.size() << endl;
+                //cout << "qt" << endl;
 
-		// sleep for the time remaining to let us hit our 10hz publish rate.
-		//loop_rate.sleep();
+                // Draw the best fitted line for each image
+                DrawResult(RANSAC_image, bestPoints.at(0), bestPoints.at(1), pendicularDistance);
+
+                vector<double> returnVector;
+                returnVector = GetAngleInDegree(bestPoints.at(0), bestPoints.at(1));
+                theta = returnVector.at(2);
+                r = GetR(bestPoints.at(0), bestPoints.at(1));
+
+                // Add the values directly in the input image
+                AddInlierText(RANSAC_image, RANSAC_image.rows/15, RANSAC_image.rows/15, "r: ", (int)r);
+                AddInlierText(RANSAC_image, RANSAC_image.rows/8, RANSAC_image.rows/8, "theta: ", (int)theta);
+
+                // Plot the r and theta in the terminal
+                //cout << "r: " << r << "\t" << " theta (degree): " << theta << endl;
+            }
+
+            imshow("RANSAC_image", RANSAC_image);
+            waitKey(1); // Wait 1 ms to make the imshow have time to show the image
+
+            // Publish the r and theta trough ROS
+            msg.r = r;
+            msg.theta = theta;
+
+            // And then we send it on the test_pub topic
+            r_and_theta_pub.publish(msg);
+
+            // Spin once
+            //ros::spinOnce();
+
+            // sleep for the time remaining to let us hit our 10hz publish rate.
+            //loop_rate.sleep();
+
+        }
+        else
+        {
+            cout << "We are waiting for the camera" << endl;
+        }
 	}
 
 	return 0;
