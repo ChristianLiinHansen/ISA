@@ -540,16 +540,31 @@ VideoCapture OpenCamera(int device)
 	return video;
 }
 
-Mat GetImageFromCamera(VideoCapture video)
+Mat GetImageFromCamera(VideoCapture video, bool flag)
 {
-	// Create a Mat objet frame
-	Mat cameraFrame;
+    // Create a Mat objet frame
+    Mat image;
 
-	// Getting the latest image from camera stored in the variable cameraFrame.
-	video.read(cameraFrame);
+    if(flag)
+    {
+        // Getting the latest image from camera stored in the variable image.
+        video.read(image);
 
-	// Returning the camera
-	return cameraFrame;
+        // Here we dont need to resize the image, if images is comming from the webcam.
+    }
+    else
+    {
+        // Else read the image taking from a smpartphone as a still image, that had higher resoution than the webcamera
+        image = imread("/home/christian/workspace_eclipseLuna/DisplayImage/src/indoorFinal1.jpg", CV_LOAD_IMAGE_COLOR);
+
+        // And then we need to resize it a bit with a factor 3.
+        int resizeScale = 3;
+        Size size(image.cols/resizeScale,image.rows/resizeScale);
+        resize(image,image,size);//resize image
+    }
+
+    // Returning the image
+    return image;
 }
 
 void CountDownSec(int sec)
@@ -576,6 +591,8 @@ class TestClass
 
 
 };
+
+bool videoFlag = false;
 
 int main(int argc, char **argv)
 {
@@ -638,9 +655,14 @@ int main(int argc, char **argv)
     int xt = 0;
     int yt = 0;
 
-    // Open the webcam
+    // Open the webcam, which is normally camera1, since the inbuilt camera is 0.
     VideoCapture video = OpenCamera(1);
-    // Count down the secounds before running to stabalize the camera
+    if(video.isOpened())
+    {
+        // If the webcam can be accesed, then set this flag true, so we use the images from a webcamera in
+        // the function GetImageFromCamera(). Else the parameter is false, and a still image is loaded instead.
+        videoFlag = true;
+    }
 
     bool flag = true;
     while (ros::ok())
@@ -652,8 +674,8 @@ int main(int argc, char **argv)
         // I want to test the motors
 
         Mat inputImage;
-        inputImage = GetImageFromCamera(video);
-        //inputImage = imread("/home/christian/workspace_eclipseLuna/DisplayImage/src/indoorFinal1.jpg", CV_LOAD_IMAGE_COLOR);
+        // Set boolean to true, to get images from video. Else set to false to get image from still image
+        inputImage = GetImageFromCamera(video, videoFlag);
 
         // Set the xt_offset and yt_offset once
         if(flag)
@@ -687,12 +709,6 @@ int main(int argc, char **argv)
 
         // Copy/overwrite the imgRotatedAndTranslated over into inputImage
         imgRotatedAndTranslated.copyTo(inputImage);
-
-        // Resize scale
-        int resizeScale = 1;
-        // Resize the image
-        Size size(inputImage.cols/resizeScale,inputImage.rows/resizeScale);//the dst image size,e.g.100x100
-        resize(inputImage,inputImage,size);//resize image
 
         // Split the input image into R,G and B.
         Mat R =	GetRGB(inputImage).at(2);

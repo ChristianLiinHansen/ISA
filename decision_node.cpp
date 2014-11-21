@@ -23,8 +23,10 @@ void r_and_thetaCallBack(const isa_project::r_and_theta::ConstPtr& msg)
 	ros::NodeHandle n;
 	
 	// Publisher cmd_velo
-	ros::Publisher cmd_vel_pub = n.advertise<geometry_msgs::Twist>("/cmd_vel", 1);
-	
+    //ros::Publisher cmd_vel_pub = n.advertise<geometry_msgs::Twist>("/cmd_vel", 1);
+    //ros::Publisher cmd_vel_pub = n.advertise<geometry_msgs::Twist>("/cmd_vel", 1);
+     ros::Publisher cmd_vel_pub = n.advertise<geometry_msgs::Twist>("/fmCommand/cmd_vel", 1);
+
     // Perfect heading forward is 90 degree
 
     // Now we need to look into the r. This has the most influence on the direction.
@@ -227,7 +229,10 @@ int main(int argc, char **argv)
 	ros::Subscriber r_and_theta_sub = n.subscribe("/r_and_theta", 1000, r_and_thetaCallBack);
 	
     // Publisher cmd_vel
-    ros::Publisher cmd_vel_pub = n.advertise<geometry_msgs::Twist>("/cmd_vel", 1);
+    //ros::Publisher cmd_vel_pub = n.advertise<geometry_msgs::Twist>("/cmd_vel", 1);
+
+    // Publisher on /fmCommand/cmd_vel
+    ros::Publisher cmd_vel_pub = n.advertise<geometry_msgs::Twist>("/fmCommand/cmd_vel", 1);
 
 	while (ros::ok())
 	{
