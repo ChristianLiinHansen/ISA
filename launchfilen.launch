@@ -12,12 +12,21 @@
  	</node>
 
 	<!-- Running the simulation frobit_v2_demo -->
-	 <node 
+	
+	<node 
 		pkg = "frobit_v2_demo" type="frobit_sim_wpt_nav" name ="frobit_sim_wpt_nav" output="screen">
  	</node>
+	
 
-	<!-- Running the listener_node. This is commented out -->
 
+	<!-- Running the real frobit_v2_demo -->
+	
+	<!--
+	<node 
+		pkg = "frobit_v2_demo" type="frobit_run_wpt_nav" name ="frobit_run_wpt_nav" output="screen">
+ 	</node>
+	-->
+	
 	<!--	 
 	<node 
 		pkg = "isa_project" type="listener_node" name ="listener_node" output="screen">

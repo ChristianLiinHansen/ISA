@@ -577,6 +577,30 @@ void CountDownSec(int sec)
     }
     cout << "Starting..." << endl;
 }
+
+Mat DrawCoordinate(Mat image)
+{
+    Point point1v, point2v;
+    Point point1h, point2h;
+
+    // The first and secound vertical point
+    point1v.x = image.cols/2;
+    point1v.y = 0;
+    point2v.x = image.cols/2;
+    point2v.y = image.rows;
+
+    // The first and secound horizontal point
+    point1h.x = 0;
+    point1h.y = image.rows/2;
+    point2h.x = image.cols;
+    point2h.y = image.rows/2;
+
+    // Draw the vertical and horizontal lines
+    line(image, point1v, point2v, Scalar(0,255,0),1,8,0);
+    line(image, point1h, point2h, Scalar(0,255,0),1,8,0);
+
+    return image;
+}
 ///////////////////////////////////////////////////////////
 // The main function
 ///////////////////////////////////////////////////////////
@@ -789,6 +813,10 @@ int main(int argc, char **argv)
                 //cout << "r: " << r << "\t" << " theta (degree): " << theta << endl;
             }
 
+
+            RANSAC_image = DrawCoordinate(RANSAC_image);
+
+            //cout << "Dimension of image is: " << RANSAC_image.size() << endl;
             imshow("RANSAC_image", RANSAC_image);
             waitKey(1); // Wait 1 ms to make the imshow have time to show the image
 
