@@ -8,6 +8,7 @@
 // Trying to do the msg sending.
 //#include <isa_project/num.h>
 #include <isa_project/r_and_theta.h>
+#include <isa_project/end_of_line.h>
 
 #include <opencv2/opencv.hpp>
 #include <opencv2/core/core.hpp>
@@ -433,7 +434,7 @@ vector<double> GetAngleInDegree(Point bestPoint1, Point bestPoint2)
 			//cout << "theta is: " << theta << endl;
 			theta = abs(theta)-180;
 			//cout << "The angle is correct to: " << theta << endl;
-
+#include <isa_project/r_and_theta.h>
 		}
 		else // Means (theta >= 0 && theta <= 90)
 		{
@@ -555,12 +556,14 @@ Mat GetImageFromCamera(VideoCapture video, bool flag)
     else
     {
         // Else read the image taking from a smpartphone as a still image, that had higher resoution than the webcamera
-        image = imread("/home/christian/workspace_eclipseLuna/DisplayImage/src/indoorFinal1.jpg", CV_LOAD_IMAGE_COLOR);
+        image = imread("/home/christian/workspace_eclipseLuna/DisplayImage/src/indoor4.jpg", CV_LOAD_IMAGE_COLOR);
 
+        //cout << "Dimensions of still image is: " << image.size() << endl;
         // And then we need to resize it a bit with a factor 3.
         int resizeScale = 3;
         Size size(image.cols/resizeScale,image.rows/resizeScale);
         resize(image,image,size);//resize image
+        //cout << "and has been scaled down to " << image.size() << endl;
     }
 
     // Returning the image
@@ -618,10 +621,34 @@ class TestClass
 
 bool videoFlag = false;
 
+CvCapture* InitPlayBackVideo()
+{
+    CvCapture* capture = cvCreateFileCapture("/home/christian/workspace_eclipseLuna/DisplayImage/src/endOfLineTestVideo.mp4");
+
+    if(!capture)
+    {
+        printf("Video Not Opened\n");
+    }
+
+    return capture;
+}
+
+IplImage* PlayBackVideo(CvCapture* capture)
+{
+    IplImage* frame = cvQueryFrame(capture);
+    cvWaitKey(10);
+    return frame;
+}
+
 int main(int argc, char **argv)
 {
     TestClass object;
     object.coolSaying();
+
+    // Testing the playbackfile
+    CvCapture* capture = InitPlayBackVideo();
+    IplImage* frame = NULL;
+
 
 	/**
 	 * The ros::init() function needs to see argc and argv so that it can perform
@@ -662,10 +689,13 @@ int main(int argc, char **argv)
 	//ros::Publisher chatter_pub = n.advertise<std_msgs::String>("chatter", 1000);
 	//ros::Publisher test_pub = n.advertise<isa_project::num>("/testing_num", 1);
 	ros::Publisher r_and_theta_pub = n.advertise<isa_project::r_and_theta>("/r_and_theta", 1);
+    ros::Publisher end_of_line_pub = n.advertise<isa_project::end_of_line>("/end_of_line", 1);
 	//ros::Rate loop_rate(10);
 	
 	//isa_project::num msg;
-	isa_project::r_and_theta msg;
+    isa_project::r_and_theta msg_r_and_theta;
+    isa_project::end_of_line msg_bool;
+
 
   /**
    * A count of how many messages we have sent. This is used to create
@@ -700,6 +730,7 @@ int main(int argc, char **argv)
         Mat inputImage;
         // Set boolean to true, to get images from video. Else set to false to get image from still image
         inputImage = GetImageFromCamera(video, videoFlag);
+        //inputImage = cvQueryFrame(capture);
 
         // Set the xt_offset and yt_offset once
         if(flag)
@@ -744,10 +775,13 @@ int main(int argc, char **argv)
         Mat ExR = GetExcessiveRG(R,G,B).at(0);
         Mat ExGR = ExG-ExR;
 
+        imshow("ExGR", ExGR);
+
+
         //Create the threshold - hardcodede at the moment 17/11-2014.
         createTrackbar("Threshold", "Thresholded image", &thresholdValue, 255);
         Mat treshold_img = GetThreshold(ExGR, thresholdValue);
-        //imshow("Thresholded image", treshold_img);
+        imshow("Thresholded image", treshold_img);
 
 
         // Do morphology to the image to limit the search with ransac.
@@ -775,9 +809,12 @@ int main(int argc, char **argv)
             {
                 //cout << "Hey the size is < 2" << endl;
                 //cout << "so we skip the image..." << endl;
+                //cout << "We are in the end of line " << endl;
+                msg_bool.end_of_line = true;
             }
             else
             {
+                msg_bool.end_of_line = false;
                 //cout << "Hey the size is >= 2" << endl;
                 //cout << "so we continue..." << endl;
 
@@ -821,12 +858,13 @@ int main(int argc, char **argv)
             waitKey(1); // Wait 1 ms to make the imshow have time to show the image
 
             // Publish the r and theta trough ROS
-            msg.r = r;
-            msg.theta = theta;
+            msg_r_and_theta.r = r;
+            msg_r_and_theta.theta = theta;
 
+            // Publish the boolean end of line
             // And then we send it on the test_pub topic
-            r_and_theta_pub.publish(msg);
-
+            r_and_theta_pub.publish(msg_r_and_theta);
+            end_of_line_pub.publish(msg_bool);
             // Spin once
             //ros::spinOnce();
 

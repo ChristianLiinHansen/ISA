@@ -1,45 +1,56 @@
 #include "ros/ros.h"
 #include <isa_project/r_and_theta.h>            // Added to include my custom msg file, r_and_theta.msg
+#include <isa_project/end_of_line.h>            // Added to include my custom msg file, end_of_line.msg
 #include <geometry_msgs/Twist.h>                // Added to include the in-built msg file, geometry_msg/Twist.msg
 #include <geometry_msgs/TwistStamped.h>         // Added to include the in-built msg file, geometry_msg/TwistStamped.msg
 
 using namespace std;                   // Added to avoid typing std::function all over the place, like std::cout and std::endl
 
 // Using the simulated input image
-#define imgCols 853
-#define imgRows 640
+//#define imgCols 1088
+//#define imgRows 612
 
 // Using the real camera attach to the robot, the dimension is:
-//#define imgCols 640
-//#define imgRows 480
+#define imgCols 640
+#define imgRows 480
+
+#define linear_stopped 0.0
+#define angular_stopped 0.0
+
+#define linear_vel 0.1
+
+#define angular_vel1 0.1
+#define angular_vel2 0.2
+#define angular_vel3 0.3
 
 // Global varialbe
 geometry_msgs::Twist twist;  // Works for simulation
 geometry_msgs::TwistStamped twistStamped; // Testing for real running
 
+bool end_of_line = false;
+
 // Functions
-geometry_msgs::Twist GetTwist(double r, double theta)
+void GetTwist(double r, double theta)
 {
-    geometry_msgs::Twist twist;
     cout << "r is: " << r << endl;
     // if r is more visualized in the left side and still is almost vertical.
     if ((r <= (imgCols*0.5-50)) && ((theta >= 80) && (theta <= 100)))
     {
         cout << "line is in left side and vertical" << endl;
-        twist.angular.z = 0.1;
-        twist.linear.x = 0.1;
-        cout << "twist.angular.z = 0.1;" << endl;
-        cout << "twist.linear.z = 0.1;" << endl;
+        twistStamped.twist.angular.z = angular_vel1;
+        twistStamped.twist.linear.x = linear_vel;
+        cout << "twistStamped.twist.angular.z = " << twistStamped.twist.angular.z << endl;
+        cout << "twistStamped.twist.linear.x = " << twistStamped.twist.linear.x << endl;
         cout << "\n" << endl;
     }
     // else if r is more visualized in the right side and still is almost vertical.
     else if ((r >= (imgCols*0.5+50)) && ((theta >= 80) && (theta <= 100)))
     {
         cout << "line is in right side and vertical" << endl;
-        twist.angular.z = -0.1;
-        twist.linear.x = 0.1;
-        cout << "twist.angular.z = -0.1;" << endl;
-        cout << "twist.linear.z = 0.1;" << endl;
+        twistStamped.twist.angular.z = -angular_vel1;
+        twistStamped.twist.linear.x = linear_vel;
+        cout << "twistStamped.twist.angular.z = " << twistStamped.twist.angular.z << endl;
+        cout << "twistStamped.twist.linear.x = " << twistStamped.twist.linear.x << endl;
         cout << "\n" << endl;
     }
 
@@ -52,26 +63,26 @@ geometry_msgs::Twist GetTwist(double r, double theta)
 
             if((theta <= 85) && (theta >= 70))
             {
-                twist.angular.z = -0.1;
-                twist.linear.x = 0.1;
-                cout << "twist.angular.z = -0.1;" << endl;
-                cout << "twist.linear.z = 0.1;" << endl;
+                twistStamped.twist.angular.z = -angular_vel1;
+                twistStamped.twist.linear.x = linear_vel;
+                cout << "twistStamped.twist.angular.z = " << twistStamped.twist.angular.z << endl;
+                cout << "twistStamped.twist.linear.x = " << twistStamped.twist.linear.x << endl;
                 cout << "\n" << endl;
             }
             else if ((theta < 70) && (theta >= 60))
             {
-                twist.angular.z = -0.2;
-                twist.linear.x = 0.1;
-                cout << "twist.angular.z = -0.2;" << endl;
-                cout << "twist.linear.z = 0.1;" << endl;
+                twistStamped.twist.angular.z = -angular_vel2;
+                twistStamped.twist.linear.x = linear_vel;
+                cout << "twistStamped.twist.angular.z = " << twistStamped.twist.angular.z << endl;
+                cout << "twistStamped.twist.linear.x = " << twistStamped.twist.linear.x << endl;
                 cout << "\n" << endl;
             }
             else
             {
-                twist.angular.z = -0.3;
-                twist.linear.x = 0.0;
-                cout << "twist.angular.z = -0.3;" << endl;
-                cout << "twist.linear.z = 0.0;" << endl;
+                twistStamped.twist.angular.z = -angular_vel3;
+                twistStamped.twist.linear.x = linear_stopped;
+                cout << "twistStamped.twist.angular.z = " << twistStamped.twist.angular.z << endl;
+                cout << "twistStamped.twist.linear.x = " << twistStamped.twist.linear.x << endl;
                 cout << "\n" << endl;
             }
         }
@@ -81,26 +92,26 @@ geometry_msgs::Twist GetTwist(double r, double theta)
 
             if((theta >= 100) && (theta <= 110))
             {
-                twist.angular.z = 0.1;
-                twist.linear.x = 0.1;
-                cout << "twist.angular.z = 0.1;" << endl;
-                cout << "twist.linear.z = 0.1;" << endl;
+                twistStamped.twist.angular.z = angular_vel1;
+                twistStamped.twist.linear.x = linear_vel;
+                cout << "twistStamped.twist.angular.z = " << twistStamped.twist.angular.z << endl;
+                cout << "twistStamped.twist.linear.x = " << twistStamped.twist.linear.x << endl;
                 cout << "\n" << endl;
             }
             else if ((theta > 110) && (theta <= 120))
             {
-                twist.angular.z = 0.2;
-                twist.linear.x = 0.1;
-                cout << "twist.angular.z = 0.;" << endl;
-                cout << "twist.linear.z = 0.1;" << endl;
+                twistStamped.twist.angular.z = angular_vel2;
+                twistStamped.twist.linear.x = linear_vel;
+                cout << "twistStamped.twist.angular.z = " << twistStamped.twist.angular.z << endl;
+                cout << "twistStamped.twist.linear.x = " << twistStamped.twist.linear.x << endl;
                 cout << "\n" << endl;
             }
             else
             {
-                twist.angular.z = 0.3;
-                twist.linear.x = 0.0;
-                cout << "twist.angular.z = 0.3;" << endl;
-                cout << "twist.linear.z = 0.0;" << endl;
+                twistStamped.twist.angular.z = angular_vel3;
+                twistStamped.twist.linear.x = linear_stopped;
+                cout << "twistStamped.twist.angular.z = " << twistStamped.twist.angular.z << endl;
+                cout << "twistStamped.twist.linear.x = " << twistStamped.twist.linear.x << endl;
                 cout << "\n" << endl;
             }
         }
@@ -111,26 +122,26 @@ geometry_msgs::Twist GetTwist(double r, double theta)
 
             if((theta <= 85) && (theta >= 70))
             {
-                twist.angular.z = -0.1;
-                twist.linear.x = 0.1;
-                cout << "twist.angular.z = -0.1;" << endl;
-                cout << "twist.linear.z = 0.1;" << endl;
+                twistStamped.twist.angular.z = -angular_vel1;
+                twistStamped.twist.linear.x = linear_vel;
+                cout << "twistStamped.twist.angular.z = " << twistStamped.twist.angular.z << endl;
+                cout << "twistStamped.twist.linear.x = " << twistStamped.twist.linear.x << endl;
                 cout << "\n" << endl;
             }
             else if ((theta < 70) && (theta >= 60))
             {
-                twist.angular.z = -0.2;
-                twist.linear.x = 0.1;
-                cout << "twist.angular.z = -0.2;" << endl;
-                cout << "twist.linear.z = 0.1;" << endl;
+                twistStamped.twist.angular.z = -angular_vel2;
+                twistStamped.twist.linear.x = linear_vel;
+                cout << "twistStamped.twist.angular.z = " << twistStamped.twist.angular.z << endl;
+                cout << "twistStamped.twist.linear.x = " << twistStamped.twist.linear.x << endl;
                 cout << "\n" << endl;
             }
             else
             {
-                twist.angular.z = -0.3;
-                twist.linear.x = 0.0;
-                cout << "twist.angular.z = -0.3;" << endl;
-                cout << "twist.linear.z = 0.0;" << endl;
+                twistStamped.twist.angular.z = -angular_vel3;
+                twistStamped.twist.linear.x = linear_stopped;
+                cout << "twistStamped.twist.angular.z = " << twistStamped.twist.angular.z << endl;
+                cout << "twistStamped.twist.linear.x = " << twistStamped.twist.linear.x << endl;
                 cout << "\n" << endl;
             }
         }
@@ -141,41 +152,39 @@ geometry_msgs::Twist GetTwist(double r, double theta)
 
             if((theta >= 100) && (theta <= 110))
             {
-                twist.angular.z = 0.1;
-                twist.linear.x = 0.1;
-                cout << "twist.angular.z = 0.1;" << endl;
-                cout << "twist.linear.z = 0.1;" << endl;
+                twistStamped.twist.angular.z = angular_vel1;
+                twistStamped.twist.linear.x = linear_vel;
+                cout << "twistStamped.twist.angular.z = " << twistStamped.twist.angular.z << endl;
+                cout << "twistStamped.twist.linear.x = " << twistStamped.twist.linear.x << endl;
                 cout << "\n" << endl;
             }
             else if ((theta > 110) && (theta <= 120))
             {
-                twist.angular.z = 0.2;
-                twist.linear.x = 0.1;
-                cout << "twist.angular.z = 0.2;" << endl;
-                cout << "twist.linear.z = 0.1;" << endl;
+                twistStamped.twist.angular.z = angular_vel2;
+                twistStamped.twist.linear.x = linear_vel;
+                cout << "twistStamped.twist.angular.z = " << twistStamped.twist.angular.z << endl;
+                cout << "twistStamped.twist.linear.x = " << twistStamped.twist.linear.x << endl;
                 cout << "\n" << endl;
             }
             else
             {
-                twist.angular.z = 0.3;
-                twist.linear.x = 0.0;
-                cout << "twist.angular.z = 0.3;" << endl;
-                cout << "twist.linear.z = 0.0;" << endl;
+                twistStamped.twist.angular.z = angular_vel3;
+                twistStamped.twist.linear.x = linear_stopped;
+                cout << "twistStamped.twist.angular.z = " << twistStamped.twist.angular.z << endl;
+                cout << "twistStamped.twist.linear.x = " << twistStamped.twist.linear.x << endl;
                 cout << "\n" << endl;
             }
         }
         else
         {
             cout << "All perfect ..." << endl;
-            twist.angular.z = 0.0;
-            twist.linear.x = 0.1;
-            cout << "twist.angular.z = 0.0;" << endl;
-            cout << "twist.linear.z = 0.1;" << endl;
+            twistStamped.twist.angular.z = angular_stopped;
+            twistStamped.twist.linear.x = linear_vel;
+            cout << "twistStamped.twist.angular.z = " << twistStamped.twist.angular.z << endl;
+            cout << "twistStamped.twist.linear.x = " << twistStamped.twist.linear.x << endl;
             cout << "\n" << endl;
         }
     }
-
-    return twist;
 }
 
 // The r_and_theta callback function
@@ -194,26 +203,50 @@ void r_and_thetaCallBack(const isa_project::r_and_theta::ConstPtr& msg)
     double r = msg-> r;
     double theta = msg-> theta;
 
-    // Overwrite to the global variable twist --> Should be optimized with classes.
-    twist = GetTwist(r, theta);
+    // Overwrite
+
+    if (end_of_line == false)
+    {
+        cout << "End of line is false" << endl;
+        GetTwist(r, theta);
+    }
+    else
+    {
+        cout << "We are at end of line and should stop" << endl;
+        twistStamped.twist.angular.z = angular_stopped;
+        twistStamped.twist.linear.x = linear_stopped;
+    }
+
+}
+
+// The end_of_line callback function
+void end_of_lineCallBack(const isa_project::end_of_line::ConstPtr& msg)
+{
+    //cout << "We got into the end of line cb function" << endl;
+    end_of_line = msg-> end_of_line;
+
 }
 
 int main(int argc, char **argv)
 {
     ros::init(argc, argv, "decision_node");
     ros::NodeHandle n;
-    ros::Rate loop_rate(10);
+    // Try to set the loop rate down to avoid the watchdog timer to set linary and velocity to zero.
+    ros::Rate loop_rate(20);
 
     // Subscriber r_and_theta
     ros::Subscriber r_and_theta_sub = n.subscribe("/r_and_theta", 1000, r_and_thetaCallBack);
+    ros::Subscriber end_of_line_sub = n.subscribe("/end_of_line", 1000, end_of_lineCallBack);
 
     // Publisher cmd_vel
-    ros::Publisher cmd_vel_pub = n.advertise<geometry_msgs::Twist>("/cmd_vel", 1);
+    ros::Publisher cmd_vel_pub = n.advertise<geometry_msgs::TwistStamped>("/fmCommand/cmd_vel_from_vision", 1);
+    ros::Publisher cmd_vel_vision_pub = n.advertise<geometry_msgs::TwistStamped>("/fmCommand/cmd_vel", 1);
 
     while (ros::ok())
     {
         // And then we send it on the test_pub topic
-        cmd_vel_pub.publish(twist);
+        cmd_vel_pub.publish(twistStamped);
+        cmd_vel_vision_pub.publish(twistStamped);
 
         // And wait
         loop_rate.sleep();
@@ -222,4 +255,5 @@ int main(int argc, char **argv)
         ros::spinOnce();
     }
     return 0;
+
 }
