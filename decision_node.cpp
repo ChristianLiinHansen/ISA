@@ -17,11 +17,11 @@ using namespace std;                   // Added to avoid typing std::function al
 #define linear_stopped 0.0
 #define angular_stopped 0.0
 
-#define linear_vel 0.1
+#define linear_vel 0.2
 
-#define angular_vel1 0.1
-#define angular_vel2 0.2
-#define angular_vel3 0.3
+#define angular_vel1 0.3
+#define angular_vel2 0.4
+#define angular_vel3 0.5
 
 // Global varialbe
 geometry_msgs::Twist twist;  // Works for simulation
@@ -232,7 +232,7 @@ int main(int argc, char **argv)
     ros::init(argc, argv, "decision_node");
     ros::NodeHandle n;
     // Try to set the loop rate down to avoid the watchdog timer to set linary and velocity to zero.
-    ros::Rate loop_rate(20);
+    ros::Rate loop_rate(30);
 
     // Subscriber r_and_theta
     ros::Subscriber r_and_theta_sub = n.subscribe("/r_and_theta", 1000, r_and_thetaCallBack);
