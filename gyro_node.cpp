@@ -23,20 +23,56 @@
 using namespace cv;
 using namespace std;
 
+//class ImuConverter
+//{
+//    public:
+
+//        ///////////////////////////////////////////////////////////////////
+//        // Public variables
+//        ///////////////////////////////////////////////////////////////////
+
+//        double yaw, degree;
+
+//        ///////////////////////////////////////////////////////////////////
+//        // Public member functions
+//        ///////////////////////////////////////////////////////////////////
+
+//        ImuConverter()
+//        {
+//            //cout << "Calling the constructor" << endl;
+//            degree = getRad2Degre(yaw);
+//        }
+
+//        ~ImuConverter()
+//        {
+//            //cout << "Calling the deconstructor" << endl;
+//        }
+
+//        double getRad2Degre(double rad)
+//        {
+//            return rad * (180.0/3.141592653589793);
+//        }
+
+////        double getDegreeInRange(int startValue, int endValue, double degree)
+////        {
+
+////            return
+////        }
+
+//    private:
+
+//        ///////////////////////////////////////////////////////////////////
+//        // Private variables
+//        ///////////////////////////////////////////////////////////////////
+
+
+//        ///////////////////////////////////////////////////////////////////
+//        // Private member functions
+//        ///////////////////////////////////////////////////////////////////
+//};
+
 void imu_CallBack(const sensor_msgs::Imu::ConstPtr& msg)
 {
-//    double x = msg-> orientation.x;
-//    double y = msg-> orientation.y;
-//    double z = msg-> orientation.z;
-//    double w = msg-> orientation.w;
-
-    // works. Now I can have the IMU data inside my gyro_node. N
-    // Now I just need to change the x,y,z,w quatrion to roll, pitch, and yaw.
-
-    //std::cout << "I head this w: " << w << std::endl;
-
-    // Now when we get the quaternion representation, we can hopefully convert it to Euler angels.
-
     // Taken from http://answers.ros.org/question/36977/invalid-arguments-convert-from-quaternion-to-euler/
     // Convert quaternion to RPY.
     tf::Quaternion q;
@@ -44,23 +80,20 @@ void imu_CallBack(const sensor_msgs::Imu::ConstPtr& msg)
     tf::quaternionMsgToTF(msg->orientation, q);
     tf::Matrix3x3(q).getRPY(roll, pitch, yaw);
     //ROS_DEBUG("RPY = (%lf, %lf, %lf)", roll, pitch, yaw);
-    //cout << "yaw: \t" << yaw << endl;
-    cout << "Angle of yaw is:\t" << yaw * (180.0/3.141592653589793) << endl;
+    cout << "yaw: \t" << yaw << endl;
+
+    // Instantiate the call ImuConverter to create the object ic
+    //ImuConverter ic;
+    //ic.yaw = yaw;
+
+    //cout << "yaw is in degree:\t" << yaw * (180.0/3.141592653589793) << endl;
 }
 
 int main(int argc, char **argv)
 {
-	/**
-	 * The ros::init() function needs to see argc and argv so that it can perform
-	 * any ROS arguments and name remapping that were provided at the command line. For programmatic
-	 * remappings you can use a different version of init() which takes remappings
-	 * directly, but for most command-line programs, passing argc and argv is the easiest
-	 * way to do it.  The third argument to init() is the name of the node.
-	 *
-	 * You must call one of the versions of ros::init() before using any other
-	 * part of the ROS system.
-	 */
+    // Initialize this ROS node
     ros::init(argc, argv, "gyro_node");
+
 	/**
 	* NodeHandle is the main access point to communications with the ROS system.
 	* The first NodeHandle constructed will fully initialize this node, and the last

@@ -203,8 +203,6 @@ void r_and_thetaCallBack(const isa_project::r_and_theta::ConstPtr& msg)
     double r = msg-> r;
     double theta = msg-> theta;
 
-    // Overwrite
-
     if (end_of_line == false)
     {
         cout << "End of line is false" << endl;
