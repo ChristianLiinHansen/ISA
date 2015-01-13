@@ -5,10 +5,8 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
 
-// Trying to do the msg sending.
-//#include <isa_project/num.h>
-#include <isa_project/r_and_theta.h>
-#include <isa_project/end_of_line.h>
+// Do the custom msg sending.
+#include <isa_project/vision.h>
 
 #include <opencv2/opencv.hpp>
 #include <opencv2/core/core.hpp>
@@ -434,7 +432,6 @@ vector<double> GetAngleInDegree(Point bestPoint1, Point bestPoint2)
 			//cout << "theta is: " << theta << endl;
 			theta = abs(theta)-180;
 			//cout << "The angle is correct to: " << theta << endl;
-#include <isa_project/r_and_theta.h>
 		}
 		else // Means (theta >= 0 && theta <= 90)
 		{
@@ -688,14 +685,12 @@ int main(int argc, char **argv)
    */
 	//ros::Publisher chatter_pub = n.advertise<std_msgs::String>("chatter", 1000);
 	//ros::Publisher test_pub = n.advertise<isa_project::num>("/testing_num", 1);
-	ros::Publisher r_and_theta_pub = n.advertise<isa_project::r_and_theta>("/r_and_theta", 1);
-    ros::Publisher end_of_line_pub = n.advertise<isa_project::end_of_line>("/end_of_line", 1);
+    ros::Publisher vision_pub = n.advertise<isa_project::vision>("/vision", 1);
+    //ros::Publisher end_of_line_pub = n.advertise<isa_project::end_of_line>("/end_of_line", 1);
 	//ros::Rate loop_rate(10);
 	
 	//isa_project::num msg;
-    isa_project::r_and_theta msg_r_and_theta;
-    isa_project::end_of_line msg_bool;
-
+    isa_project::vision msg_vision;
 
   /**
    * A count of how many messages we have sent. This is used to create
@@ -810,11 +805,11 @@ int main(int argc, char **argv)
                 //cout << "Hey the size is < 2" << endl;
                 //cout << "so we skip the image..." << endl;
                 //cout << "We are in the end of line " << endl;
-                msg_bool.end_of_line = true;
+                msg_vision.end_of_line = true;
             }
             else
             {
-                msg_bool.end_of_line = false;
+                msg_vision.end_of_line = false;
                 //cout << "Hey the size is >= 2" << endl;
                 //cout << "so we continue..." << endl;
 
@@ -858,13 +853,13 @@ int main(int argc, char **argv)
             waitKey(1); // Wait 1 ms to make the imshow have time to show the image
 
             // Publish the r and theta trough ROS
-            msg_r_and_theta.r = r;
-            msg_r_and_theta.theta = theta;
+            msg_vision.r = r;
+            msg_vision.theta = theta;
 
             // Publish the boolean end of line
             // And then we send it on the test_pub topic
-            r_and_theta_pub.publish(msg_r_and_theta);
-            end_of_line_pub.publish(msg_bool);
+            vision_pub.publish(msg_vision);
+
             // Spin once
             //ros::spinOnce();
 

@@ -1,6 +1,5 @@
 #include "ros/ros.h"
-#include <isa_project/r_and_theta.h>            // Added to include my custom msg file, r_and_theta.msg
-#include <isa_project/end_of_line.h>            // Added to include my custom msg file, end_of_line.msg
+#include <isa_project/vision.h>            // Added to include my custom msg file, vision.msg
 #include <geometry_msgs/Twist.h>                // Added to include the in-built msg file, geometry_msg/Twist.msg
 #include <geometry_msgs/TwistStamped.h>         // Added to include the in-built msg file, geometry_msg/TwistStamped.msg
 
@@ -188,7 +187,7 @@ void GetTwist(double r, double theta)
 }
 
 // The r_and_theta callback function
-void r_and_thetaCallBack(const isa_project::r_and_theta::ConstPtr& msg)
+void vision_CallBack(const isa_project::vision::ConstPtr& msg)
 {
     // Note:
     /*
@@ -202,6 +201,7 @@ void r_and_thetaCallBack(const isa_project::r_and_theta::ConstPtr& msg)
     */
     double r = msg-> r;
     double theta = msg-> theta;
+    bool end_of_line = msg-> end_of_line;
 
     if (end_of_line == false)
     {
@@ -217,14 +217,6 @@ void r_and_thetaCallBack(const isa_project::r_and_theta::ConstPtr& msg)
 
 }
 
-// The end_of_line callback function
-void end_of_lineCallBack(const isa_project::end_of_line::ConstPtr& msg)
-{
-    //cout << "We got into the end of line cb function" << endl;
-    end_of_line = msg-> end_of_line;
-
-}
-
 int main(int argc, char **argv)
 {
     ros::init(argc, argv, "decision_node");
@@ -233,8 +225,7 @@ int main(int argc, char **argv)
     ros::Rate loop_rate(30);
 
     // Subscriber r_and_theta
-    ros::Subscriber r_and_theta_sub = n.subscribe("/r_and_theta", 1000, r_and_thetaCallBack);
-    ros::Subscriber end_of_line_sub = n.subscribe("/end_of_line", 1000, end_of_lineCallBack);
+    ros::Subscriber vision_sub = n.subscribe("/vision", 1000, vision_CallBack);
 
     // Publisher cmd_vel
     ros::Publisher cmd_vel_pub = n.advertise<geometry_msgs::TwistStamped>("/fmCommand/cmd_vel_from_vision", 1);
