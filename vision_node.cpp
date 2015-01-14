@@ -770,14 +770,13 @@ int main(int argc, char **argv)
         Mat ExR = GetExcessiveRG(R,G,B).at(0);
         Mat ExGR = ExG-ExR;
 
-        imshow("ExGR", ExGR);
+        //imshow("ExGR", ExGR);
 
 
         //Create the threshold - hardcodede at the moment 17/11-2014.
         createTrackbar("Threshold", "Thresholded image", &thresholdValue, 255);
         Mat treshold_img = GetThreshold(ExGR, thresholdValue);
-        imshow("Thresholded image", treshold_img);
-
+        //imshow("Thresholded image", treshold_img);
 
         // Do morphology to the image to limit the search with ransac.
         Mat erode_img, dilate_img;
@@ -805,11 +804,11 @@ int main(int argc, char **argv)
                 //cout << "Hey the size is < 2" << endl;
                 //cout << "so we skip the image..." << endl;
                 //cout << "We are in the end of line " << endl;
-                msg_vision.end_of_line = true;
+                msg_vision.end_of_line_flag = true;
             }
             else
             {
-                msg_vision.end_of_line = false;
+                msg_vision.end_of_line_flag = false;
                 //cout << "Hey the size is >= 2" << endl;
                 //cout << "so we continue..." << endl;
 
