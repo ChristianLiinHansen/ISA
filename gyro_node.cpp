@@ -40,8 +40,6 @@ class ImuConverter
     // Declare the subscribers
     ros::Subscriber imu_sub;
 
-
-
     ///////////////////////////////////////////////////////////////////
     // Private member functions
     ///////////////////////////////////////////////////////////////////
@@ -126,17 +124,10 @@ int main(int argc, char **argv)
     // Try to set the loop rate down to avoid the watchdog timer to set linary and velocity to zero.
     ros::Rate loop_rate(30);
 
-    // Publisher
-    //ros::Publisher orientation_pub = n.advertise<isa_project::orientation>("/orientation", 1);
-
-    // Decklare the message
-    //isa_project::orientation msg_orientation;
-
     while (ros::ok())
     {
         // Take the stored orientation around the z axes in degrees and stored in the msg_orientation messages
         ic.msg_orientation.yaw = ic.degree;
-        cout << "And the degree was again2: " << ic.msg_orientation.yaw << endl;
 
         // And then we send it on the /orientation topic
         ic.orientation_pub.publish(ic.msg_orientation);
