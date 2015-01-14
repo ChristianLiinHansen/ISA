@@ -3,16 +3,17 @@
 #include <isa_project/orientation.h>            // Added to include my custom msg file, orientation.msg
 #include <geometry_msgs/Twist.h>                // Added to include the in-built msg file, geometry_msg/Twist.msg
 #include <geometry_msgs/TwistStamped.h>         // Added to include the in-built msg file, geometry_msg/TwistStamped.msg
-
+#include <ctime>                                // For time
+#include <cstdio>
 using namespace std;                   // Added to avoid typing std::function all over the place, like std::cout and std::endl
 
 // Using the simulated input image
-//#define imgCols 1088
-//#define imgRows 612
+#define imgCols 1088
+#define imgRows 612
 
 // Using the real camera attach to the robot, the dimension is:
-#define imgCols 640
-#define imgRows 480
+//#define imgCols 640
+//#define imgRows 480
 
 #define linear_stopped 0.0
 #define angular_stopped 0.0
@@ -22,6 +23,11 @@ using namespace std;                   // Added to avoid typing std::function al
 #define angular_vel1 0.3
 #define angular_vel2 0.4
 #define angular_vel3 0.5
+
+#define follow_line_state 0
+#define end_of_line_state 1
+#define turning_state 2
+#define start_of_line_state 3
 
 class DecisionClass
 {
@@ -52,7 +58,11 @@ class DecisionClass
         ///////////////////////////////////////////////////////////////////
 
         double r, theta, yaw;
-        bool end_of_line;
+        bool end_of_line_flag;
+        unsigned char current_state;
+
+        double beginDegree;
+        double endDegree;
 
         // Decklare the message
         geometry_msgs::Twist twist;  // Works for simulation
@@ -107,7 +117,7 @@ class DecisionClass
             /*
               We get into the subscriber cb funtion each time there is a new stuff on this topic
 
-              Normally if the vertical line is place directly in the middle of the image, the
+              Normalend_of_line_stately if the vertical line is place directly in the middle of the image, the
               parameters is:
 
                 r = 320
@@ -115,13 +125,14 @@ class DecisionClass
             */
             r = msg-> r;
             theta = msg-> theta;
-            end_of_line = msg-> end_of_line;
+            end_of_line_flag = msg-> end_of_line_flag;
         }
 
-        // The r_and_theta callback function
+        // The orientation callback function
         void orientation_CallBack(const isa_project::orientation::ConstPtr& msg)
         {
-            double yaw = msg-> yaw;
+            cout << "Yaw was UPDATED" << endl;
+            yaw = msg-> yaw;
         }
 
         void GetTwist(double r, double theta)
@@ -281,18 +292,104 @@ class DecisionClass
             }
         }
 
-        void CheckForEndOfLine()
+        // The very simple state machine. State 1 = follow_line, state 2 = end_of_line, state 3 = turning_180, state 4 = start_of_line
+        unsigned char CheckForEndOfLine()
         {
-            if (end_of_line == false)
+            // State 0
+            if (end_of_line_flag == false)
             {
                 cout << "End of line is false" << endl;
                 GetTwist(r, theta);
+                return follow_line_state;
             }
             else // Then we are at a end_of_line. And we should start turning 180 degree
             {
-                cout << "We are at end of line and should stop" << endl;
+                // Since we entered the end_of_line, we return 1 and goes to
+                // the end_of_line_state.
+                return end_of_line_state;
+            }
+        }
+
+        void PublishTwist()
+        {
+            cmd_vel_pub.publish(twistStamped);
+            cmd_vel_vision_pub.publish(twistStamped);
+        }
+
+        void StopRobot()
+        {
+            twistStamped.twist.angular.z = angular_stopped;
+            twistStamped.twist.linear.x = linear_stopped;
+            PublishTwist();
+        }
+
+        // Drive a little forward manually.
+        void DriveRobotForward(double sec)
+        {
+            double beginTime = ros::Time::now().toSec();
+            double endTime = ros::Time::now().toSec();
+
+            while((endTime - beginTime) <= sec)
+            {
+                endTime = ros::Time::now().toSec();
                 twistStamped.twist.angular.z = angular_stopped;
+                twistStamped.twist.linear.x = linear_vel;
+                //ros::Duration(0.01).sleep(); // sleep for 10 ms second
+                PublishTwist();
+            }
+        }
+
+        // At the moment the robot will turn around itself and follow the same line down again.
+        void TurnRobotLeft(double sec)
+        {
+            double beginTime = ros::Time::now().toSec();
+            double endTime = ros::Time::now().toSec();
+
+            while((endTime - beginTime) <= sec)
+            {
+                endTime = ros::Time::now().toSec();
+                twistStamped.twist.angular.z = angular_vel3;
                 twistStamped.twist.linear.x = linear_stopped;
+                ros::Duration(0.01).sleep(); // sleep for 10 ms second
+                PublishTwist();
+            }
+        }
+
+        // At the moment the robot will turn around itself and follow the same line down again.
+        void TurnRobotRight(double sec)
+        {
+            double beginTime = ros::Time::now().toSec();
+            double endTime = ros::Time::now().toSec();
+
+            while((endTime - beginTime) <= sec)
+            {
+                endTime = ros::Time::now().toSec();
+                twistStamped.twist.angular.z = -angular_vel3;
+                twistStamped.twist.linear.x = linear_stopped;
+                ros::Duration(0.01).sleep(); // sleep for 10 ms second
+                PublishTwist();
+            }
+        }
+
+        unsigned char CheckTurningAngleIMU(double degree, double beginDegree)
+        {
+            if(fabs((beginDegree - yaw)) <= degree)
+            {
+                cout << "beginDegree was: " << beginDegree << endl;
+                cout << "endDegree is:" << yaw << endl;
+
+                twistStamped.twist.angular.z = -angular_vel3;
+                twistStamped.twist.linear.x = linear_stopped;
+                ros::Duration(0.01).sleep(); // sleep for 10 ms second
+                PublishTwist();
+                return turning_state;
+            }
+            else
+            {
+                // Here we assume that after the IMU has turned 180 degree, we will spot
+                // the green row.
+                PublishTwist();
+                return start_of_line_state;
             }
         }
 };
@@ -309,14 +406,66 @@ int main(int argc, char **argv)
     // Try to set the loop rate down to avoid the watchdog timer to set linary and velocity to zero.
     ros::Rate loop_rate(30);
 
+    // Here we initialize the state machine
+    dc.current_state = follow_line_state;
+
     while (ros::ok())
     {
-        // Check if the robot has in end_of_line
-        dc.CheckForEndOfLine();
+        // State machine
+        switch(dc.current_state)
+        {
+            case follow_line_state:
+                cout << "We are in follow_line state" << endl;
+                dc.PublishTwist();
 
-        // And then we send it on the cmd_vel_pub and cmd_vel_vision_pub topics
-        dc.cmd_vel_pub.publish(dc.twistStamped);
-        dc.cmd_vel_vision_pub.publish(dc.twistStamped);
+                // Check if the robot has in end_of_line
+                dc.current_state = dc.CheckForEndOfLine();
+            break;
+
+            case end_of_line_state:
+                cout << "We are in end_of_line state" << endl;
+                // Drive forward a little bit, to get out of the green line
+                dc.DriveRobotForward(1);
+
+                // Then stop the robot for 1 secound.
+                dc.StopRobot();
+                ros::Duration(1).sleep();
+
+                // And then go to the turning_state
+                dc.current_state = turning_state;
+
+                // Store the yaw angle just before we start turning
+                dc.beginDegree = dc.yaw;
+
+            break;
+
+            case turning_state:
+                cout << "We are in turning_state" << endl;
+
+                // Turning the robot left around it own axis, hardcoded to approximately 180 degree
+                // dc.TurnRobotLeft(6.3);
+
+                // Instead using the gyro to check when we have reached 180 degree approximately.
+
+                // Turn until the desired argument angle has been reached. Measured by the IMU
+                dc.current_state = dc.CheckTurningAngleIMU(160, dc.beginDegree);
+
+            break;
+
+            case start_of_line_state:
+                cout << "We are in start_of_line_state" << endl;
+
+                // Drive forward a little bit, to get out of the green line
+                dc.DriveRobotForward(1);
+
+                // Then stop the robot for 1 secound.
+                dc.StopRobot();
+                ros::Duration(1).sleep();
+
+                // And then go to the follow_line_state
+                dc.current_state = follow_line_state;
+            break;
+        }
 
         // And wait
         loop_rate.sleep();
