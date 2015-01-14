@@ -1,5 +1,6 @@
 #include "ros/ros.h"
-#include <isa_project/vision.h>            // Added to include my custom msg file, vision.msg
+#include <isa_project/vision.h>                 // Added to include my custom msg file, vision.msg
+#include <isa_project/orientation.h>            // Added to include my custom msg file, orientation.msg
 #include <geometry_msgs/Twist.h>                // Added to include the in-built msg file, geometry_msg/Twist.msg
 #include <geometry_msgs/TwistStamped.h>         // Added to include the in-built msg file, geometry_msg/TwistStamped.msg
 
@@ -22,13 +23,52 @@ using namespace std;                   // Added to avoid typing std::function al
 #define angular_vel2 0.4
 #define angular_vel3 0.5
 
+class DecisionClass
+{
+    public:
+
+        ///////////////////////////////////////////////////////////////////
+        // Public variables
+        ///////////////////////////////////////////////////////////////////
+
+        double yaw, degree;
+
+        ///////////////////////////////////////////////////////////////////
+        // Public member functions
+        ///////////////////////////////////////////////////////////////////
+
+        DecisionClass()
+        {
+
+        }
+
+        ~DecisionClass()
+        {
+            //cout << "Calling the deconstructor" << endl;
+        }
+
+    private:
+
+        ///////////////////////////////////////////////////////////////////
+        // Private variables
+        ///////////////////////////////////////////////////////////////////
+
+
+        ///////////////////////////////////////////////////////////////////
+        // Private member functions
+        ///////////////////////////////////////////////////////////////////
+};
+
 // Global varialbe
 geometry_msgs::Twist twist;  // Works for simulation
 geometry_msgs::TwistStamped twistStamped; // Testing for real running
 
-bool end_of_line = false;
-
 // Functions
+void GetOrientation()
+{
+
+}
+
 void GetTwist(double r, double theta)
 {
     cout << "r is: " << r << endl;
@@ -186,7 +226,7 @@ void GetTwist(double r, double theta)
     }
 }
 
-// The r_and_theta callback function
+// The vision callback function
 void vision_CallBack(const isa_project::vision::ConstPtr& msg)
 {
     // Note:
@@ -208,12 +248,21 @@ void vision_CallBack(const isa_project::vision::ConstPtr& msg)
         cout << "End of line is false" << endl;
         GetTwist(r, theta);
     }
-    else
+    else // Then we are at a end_of_line. And we should start turning 180 degree
     {
         cout << "We are at end of line and should stop" << endl;
         twistStamped.twist.angular.z = angular_stopped;
         twistStamped.twist.linear.x = linear_stopped;
+
     }
+
+}
+
+// The r_and_theta callback function
+void orientation_CallBack(const isa_project::orientation::ConstPtr& msg)
+{
+    double yaw = msg-> yaw;
+    cout << "The yaw angle trough topic is: " << yaw << endl;
 
 }
 
@@ -226,6 +275,7 @@ int main(int argc, char **argv)
 
     // Subscriber r_and_theta
     ros::Subscriber vision_sub = n.subscribe("/vision", 1000, vision_CallBack);
+    ros::Subscriber orientation_sub = n.subscribe("/orientation", 1000, orientation_CallBack);
 
     // Publisher cmd_vel
     ros::Publisher cmd_vel_pub = n.advertise<geometry_msgs::TwistStamped>("/fmCommand/cmd_vel_from_vision", 1);
