@@ -5,15 +5,16 @@
 #include <geometry_msgs/TwistStamped.h>         // Added to include the in-built msg file, geometry_msg/TwistStamped.msg
 #include <ctime>                                // For time
 #include <cstdio>
+#include <sstream>
 using namespace std;                   // Added to avoid typing std::function all over the place, like std::cout and std::endl
 
 // Using the simulated input image
-#define imgCols 1088
-#define imgRows 612
+//#define imgCols 1088
+//#define imgRows 612
 
 // Using the real camera attach to the robot, the dimension is:
-//#define imgCols 640
-//#define imgRows 480
+#define imgCols 640
+#define imgRows 480
 
 #define linear_stopped 0.0
 #define angular_stopped 0.0
@@ -24,10 +25,10 @@ using namespace std;                   // Added to avoid typing std::function al
 #define angular_vel2 0.4
 #define angular_vel3 0.5
 
-#define follow_line_state 0
-#define end_of_line_state 1
-#define turning_state 2
-#define start_of_line_state 3
+#define follow_line_state 1
+#define end_of_line_state 2
+#define turning_state 3
+#define start_of_line_state 4
 
 class DecisionClass
 {
@@ -113,6 +114,7 @@ class DecisionClass
         // The vision callback function
         void vision_CallBack(const isa_project::vision::ConstPtr& msg)
         {
+            //cout << "We are inside the vision cb function" << endl;
             // Note:
             /*
               We get into the subscriber cb funtion each time there is a new stuff on this topic
@@ -131,32 +133,32 @@ class DecisionClass
         // The orientation callback function
         void orientation_CallBack(const isa_project::orientation::ConstPtr& msg)
         {
-            cout << "Yaw was UPDATED" << endl;
+            //cout << "We are inside the orientation cb function" << endl;
             yaw = msg-> yaw;
         }
 
         void GetTwist(double r, double theta)
         {
-            cout << "r is: " << r << endl;
+            //cout << "r is: " << r << endl;
             // if r is more visualized in the left side and still is almost vertical.
             if ((r <= (imgCols*0.5-50)) && ((theta >= 80) && (theta <= 100)))
             {
-                cout << "line is in left side and vertical" << endl;
+                //cout << "line is in left side and vertical" << endl;
                 twistStamped.twist.angular.z = angular_vel1;
                 twistStamped.twist.linear.x = linear_vel;
-                cout << "twistStamped.twist.angular.z = " << twistStamped.twist.angular.z << endl;
-                cout << "twistStamped.twist.linear.x = " << twistStamped.twist.linear.x << endl;
-                cout << "\n" << endl;
+                //cout << "twistStamped.twist.angular.z = " << twistStamped.twist.angular.z << endl;
+                //cout << "twistStamped.twist.linear.x = " << twistStamped.twist.linear.x << endl;
+                //cout << "\n" << endl;
             }
             // else if r is more visualized in the right side and still is almost vertical.
             else if ((r >= (imgCols*0.5+50)) && ((theta >= 80) && (theta <= 100)))
             {
-                cout << "line is in right side and vertical" << endl;
+                //cout << "line is in right side and vertical" << endl;
                 twistStamped.twist.angular.z = -angular_vel1;
                 twistStamped.twist.linear.x = linear_vel;
-                cout << "twistStamped.twist.angular.z = " << twistStamped.twist.angular.z << endl;
-                cout << "twistStamped.twist.linear.x = " << twistStamped.twist.linear.x << endl;
-                cout << "\n" << endl;
+                //cout << "twistStamped.twist.angular.z = " << twistStamped.twist.angular.z << endl;
+                //cout << "twistStamped.twist.linear.x = " << twistStamped.twist.linear.x << endl;
+                //cout << "\n" << endl;
             }
 
             // else r is in between 1/3 and 2/3 of the colums and we can check on the angle only
@@ -164,130 +166,130 @@ class DecisionClass
             {
                 if ((r <= (imgCols*0.5-50)) && (theta <= 85))
                 {
-                    cout << "line is in the left side and tilted to the right" << endl;
+                    //cout << "line is in the left side and tilted to the right" << endl;
 
                     if((theta <= 85) && (theta >= 70))
                     {
                         twistStamped.twist.angular.z = -angular_vel1;
                         twistStamped.twist.linear.x = linear_vel;
-                        cout << "twistStamped.twist.angular.z = " << twistStamped.twist.angular.z << endl;
-                        cout << "twistStamped.twist.linear.x = " << twistStamped.twist.linear.x << endl;
-                        cout << "\n" << endl;
+                        //cout << "twistStamped.twist.angular.z = " << twistStamped.twist.angular.z << endl;
+                        //cout << "twistStamped.twist.linear.x = " << twistStamped.twist.linear.x << endl;
+                        //cout << "\n" << endl;
                     }
                     else if ((theta < 70) && (theta >= 60))
                     {
                         twistStamped.twist.angular.z = -angular_vel2;
                         twistStamped.twist.linear.x = linear_vel;
-                        cout << "twistStamped.twist.angular.z = " << twistStamped.twist.angular.z << endl;
-                        cout << "twistStamped.twist.linear.x = " << twistStamped.twist.linear.x << endl;
-                        cout << "\n" << endl;
+                        //cout << "twistStamped.twist.angular.z = " << twistStamped.twist.angular.z << endl;
+                        //cout << "twistStamped.twist.linear.x = " << twistStamped.twist.linear.x << endl;
+                        //cout << "\n" << endl;
                     }
                     else
                     {
                         twistStamped.twist.angular.z = -angular_vel3;
                         twistStamped.twist.linear.x = linear_stopped;
-                        cout << "twistStamped.twist.angular.z = " << twistStamped.twist.angular.z << endl;
-                        cout << "twistStamped.twist.linear.x = " << twistStamped.twist.linear.x << endl;
-                        cout << "\n" << endl;
+                        //cout << "twistStamped.twist.angular.z = " << twistStamped.twist.angular.z << endl;
+                        //cout << "twistStamped.twist.linear.x = " << twistStamped.twist.linear.x << endl;
+                        //cout << "\n" << endl;
                     }
                 }
                 else if ((r <= (imgCols*0.5-50)) && (theta >= 95))
                 {
-                    cout << "line is in the left side and tilted to the left" << endl;
+                    //cout << "line is in the left side and tilted to the left" << endl;
 
                     if((theta >= 100) && (theta <= 110))
                     {
                         twistStamped.twist.angular.z = angular_vel1;
                         twistStamped.twist.linear.x = linear_vel;
-                        cout << "twistStamped.twist.angular.z = " << twistStamped.twist.angular.z << endl;
-                        cout << "twistStamped.twist.linear.x = " << twistStamped.twist.linear.x << endl;
-                        cout << "\n" << endl;
+                        //cout << "twistStamped.twist.angular.z = " << twistStamped.twist.angular.z << endl;
+                        //cout << "twistStamped.twist.linear.x = " << twistStamped.twist.linear.x << endl;
+                        //cout << "\n" << endl;
                     }
                     else if ((theta > 110) && (theta <= 120))
                     {
                         twistStamped.twist.angular.z = angular_vel2;
                         twistStamped.twist.linear.x = linear_vel;
-                        cout << "twistStamped.twist.angular.z = " << twistStamped.twist.angular.z << endl;
-                        cout << "twistStamped.twist.linear.x = " << twistStamped.twist.linear.x << endl;
-                        cout << "\n" << endl;
+                        //cout << "twistStamped.twist.angular.z = " << twistStamped.twist.angular.z << endl;
+                        //cout << "twistStamped.twist.linear.x = " << twistStamped.twist.linear.x << endl;
+                        //cout << "\n" << endl;
                     }
                     else
                     {
                         twistStamped.twist.angular.z = angular_vel3;
                         twistStamped.twist.linear.x = linear_stopped;
-                        cout << "twistStamped.twist.angular.z = " << twistStamped.twist.angular.z << endl;
-                        cout << "twistStamped.twist.linear.x = " << twistStamped.twist.linear.x << endl;
-                        cout << "\n" << endl;
+                        //cout << "twistStamped.twist.angular.z = " << twistStamped.twist.angular.z << endl;
+                        //cout << "twistStamped.twist.linear.x = " << twistStamped.twist.linear.x << endl;
+                        //cout << "\n" << endl;
                     }
                 }
                 else if ((r >= (imgCols*0.5+50)) && (theta <= 85))
                 {
-                    cout << "line is in the right side and tilted to the right" << endl;
-                    cout << "\n" << endl;
+                    //cout << "line is in the right side and tilted to the right" << endl;
+                    //cout << "\n" << endl;
 
                     if((theta <= 85) && (theta >= 70))
                     {
                         twistStamped.twist.angular.z = -angular_vel1;
                         twistStamped.twist.linear.x = linear_vel;
-                        cout << "twistStamped.twist.angular.z = " << twistStamped.twist.angular.z << endl;
-                        cout << "twistStamped.twist.linear.x = " << twistStamped.twist.linear.x << endl;
-                        cout << "\n" << endl;
+                        //cout << "twistStamped.twist.angular.z = " << twistStamped.twist.angular.z << endl;
+                        //cout << "twistStamped.twist.linear.x = " << twistStamped.twist.linear.x << endl;
+                        //cout << "\n" << endl;
                     }
                     else if ((theta < 70) && (theta >= 60))
                     {
                         twistStamped.twist.angular.z = -angular_vel2;
                         twistStamped.twist.linear.x = linear_vel;
-                        cout << "twistStamped.twist.angular.z = " << twistStamped.twist.angular.z << endl;
-                        cout << "twistStamped.twist.linear.x = " << twistStamped.twist.linear.x << endl;
-                        cout << "\n" << endl;
+                        //cout << "twistStamped.twist.angular.z = " << twistStamped.twist.angular.z << endl;
+                        //cout << "twistStamped.twist.linear.x = " << twistStamped.twist.linear.x << endl;
+                        //cout << "\n" << endl;
                     }
                     else
                     {
                         twistStamped.twist.angular.z = -angular_vel3;
                         twistStamped.twist.linear.x = linear_stopped;
-                        cout << "twistStamped.twist.angular.z = " << twistStamped.twist.angular.z << endl;
-                        cout << "twistStamped.twist.linear.x = " << twistStamped.twist.linear.x << endl;
-                        cout << "\n" << endl;
+                        //cout << "twistStamped.twist.angular.z = " << twistStamped.twist.angular.z << endl;
+                        //cout << "twistStamped.twist.linear.x = " << twistStamped.twist.linear.x << endl;
+                        //cout << "\n" << endl;
                     }
                 }
                 else if ((r >= (imgCols*0.5+50)) && (theta >= 95))
                 {
-                    cout << "line is in the right side and tilted to the left" << endl;
-                    cout << "\n" << endl;
+                    //cout << "line is in the right side and tilted to the left" << endl;
+                    //cout << "\n" << endl;
 
                     if((theta >= 100) && (theta <= 110))
                     {
                         twistStamped.twist.angular.z = angular_vel1;
                         twistStamped.twist.linear.x = linear_vel;
-                        cout << "twistStamped.twist.angular.z = " << twistStamped.twist.angular.z << endl;
-                        cout << "twistStamped.twist.linear.x = " << twistStamped.twist.linear.x << endl;
-                        cout << "\n" << endl;
+                        //cout << "twistStamped.twist.angular.z = " << twistStamped.twist.angular.z << endl;
+                        //cout << "twistStamped.twist.linear.x = " << twistStamped.twist.linear.x << endl;
+                        //cout << "\n" << endl;
                     }
                     else if ((theta > 110) && (theta <= 120))
                     {
                         twistStamped.twist.angular.z = angular_vel2;
                         twistStamped.twist.linear.x = linear_vel;
-                        cout << "twistStamped.twist.angular.z = " << twistStamped.twist.angular.z << endl;
-                        cout << "twistStamped.twist.linear.x = " << twistStamped.twist.linear.x << endl;
-                        cout << "\n" << endl;
+                        //cout << "twistStamped.twist.angular.z = " << twistStamped.twist.angular.z << endl;
+                        //cout << "twistStamped.twist.linear.x = " << twistStamped.twist.linear.x << endl;
+                        //cout << "\n" << endl;
                     }
                     else
                     {
                         twistStamped.twist.angular.z = angular_vel3;
                         twistStamped.twist.linear.x = linear_stopped;
-                        cout << "twistStamped.twist.angular.z = " << twistStamped.twist.angular.z << endl;
-                        cout << "twistStamped.twist.linear.x = " << twistStamped.twist.linear.x << endl;
-                        cout << "\n" << endl;
+                        //cout << "twistStamped.twist.angular.z = " << twistStamped.twist.angular.z << endl;
+                        //cout << "twistStamped.twist.linear.x = " << twistStamped.twist.linear.x << endl;
+                        //cout << "\n" << endl;
                     }
                 }
                 else
                 {
-                    cout << "All perfect ..." << endl;
+                    //cout << "All perfect ..." << endl;
                     twistStamped.twist.angular.z = angular_stopped;
                     twistStamped.twist.linear.x = linear_vel;
-                    cout << "twistStamped.twist.angular.z = " << twistStamped.twist.angular.z << endl;
-                    cout << "twistStamped.twist.linear.x = " << twistStamped.twist.linear.x << endl;
-                    cout << "\n" << endl;
+                    //cout << "twistStamped.twist.angular.z = " << twistStamped.twist.angular.z << endl;
+                    //cout << "twistStamped.twist.linear.x = " << twistStamped.twist.linear.x << endl;
+                    //cout << "\n" << endl;
                 }
             }
         }
@@ -298,7 +300,7 @@ class DecisionClass
             // State 0
             if (end_of_line_flag == false)
             {
-                cout << "End of line is false" << endl;
+                //cout << "The end_of_line_flag = false" << endl;
                 GetTwist(r, theta);
                 return follow_line_state;
             }
@@ -306,12 +308,31 @@ class DecisionClass
             {
                 // Since we entered the end_of_line, we return 1 and goes to
                 // the end_of_line_state.
+                cout << "The end_of_line_flag = true" << endl;
+                return end_of_line_state;
+            }
+        }
+
+        unsigned char WaitForTurning(double sec)
+        {
+            double beginTime = ros::Time::now().toSec();
+            double endTime = ros::Time::now().toSec();
+
+            if((endTime - beginTime) <= sec)
+            {
+                endTime = ros::Time::now().toSec();
+                return turning_state;
+            }
+            else
+            {
                 return end_of_line_state;
             }
         }
 
         void PublishTwist()
         {
+            twistStamped.twist.angular.z = angular_stopped;
+            twistStamped.twist.linear.x = linear_vel;
             cmd_vel_pub.publish(twistStamped);
             cmd_vel_vision_pub.publish(twistStamped);
         }
@@ -392,6 +413,21 @@ class DecisionClass
                 return start_of_line_state;
             }
         }
+
+        string IntToString (int a)
+        {
+            ostringstream temp;
+            temp<<a;
+            return temp.str();
+        }
+
+        void DebugState(unsigned char state)
+        {
+            string debugState;
+            debugState = IntToString((int)state);
+            cout << "DEBUG: state is: " << debugState << endl;
+
+        }
 };
 
 int main(int argc, char **argv)
@@ -404,7 +440,7 @@ int main(int argc, char **argv)
 
     //ros::NodeHandle n;
     // Try to set the loop rate down to avoid the watchdog timer to set linary and velocity to zero.
-    ros::Rate loop_rate(30);
+    ros::Rate loop_rate(20);
 
     // Here we initialize the state machine
     dc.current_state = follow_line_state;
@@ -415,27 +451,36 @@ int main(int argc, char **argv)
         switch(dc.current_state)
         {
             case follow_line_state:
-                cout << "We are in follow_line state" << endl;
-                dc.PublishTwist();
+                //cout << "We are in follow_line state" << endl;
 
                 // Check if the robot has in end_of_line
                 dc.current_state = dc.CheckForEndOfLine();
+
+                dc.PublishTwist();
+
+                dc.DebugState(dc.current_state);
+
+                // Drive forward a little bit, to get out of the green line
+                //dc.DriveRobotForward(2);
             break;
 
             case end_of_line_state:
                 cout << "We are in end_of_line state" << endl;
-                // Drive forward a little bit, to get out of the green line
-                dc.DriveRobotForward(1);
+
+                // To be sure, that the robot do not just jump to end_of_line_state,
+                // in the transient response, we check again if we are in that state.
+                // Check if the robot has in end_of_line
+                dc.current_state = dc.CheckForEndOfLine();
 
                 // Then stop the robot for 1 secound.
                 dc.StopRobot();
                 ros::Duration(1).sleep();
 
                 // And then go to the turning_state
-                dc.current_state = turning_state;
+                //dc.current_state = dc.WaitForTurning(2);
 
                 // Store the yaw angle just before we start turning
-                dc.beginDegree = dc.yaw;
+                //dc.beginDegree = dc.yaw;
 
             break;
 
@@ -467,11 +512,14 @@ int main(int argc, char **argv)
             break;
         }
 
+        //cout << "We do a spinOnce here" << endl;
+        ros::spinOnce();
+
         // And wait
         loop_rate.sleep();
 
         // Make sure that we enter the call back functions onces
-        ros::spinOnce();
+
     }
     return 0;
 }

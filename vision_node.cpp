@@ -21,11 +21,6 @@
 using namespace cv;
 using namespace std;
 
-void test()
-{
-    cout << "this is a test" << endl;
-}
-
 vector<Mat> GetRGB(Mat image)
 {
 	vector<Mat> rgb_channel;
@@ -565,17 +560,6 @@ Mat GetImageFromCamera(VideoCapture video, bool flag)
 
     // Returning the image
     return image;
-}
-
-void CountDownSec(int sec)
-{
-    cout << "We count down " << sec << " secounds..." << endl;
-    for(int i = sec; i > 0; i--)
-    {
-        cout << i << endl;
-        waitKey(1000);
-    }
-    cout << "Starting..." << endl;
 }
 
 Mat DrawCoordinate(Mat image)
