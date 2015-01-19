@@ -139,13 +139,16 @@ class DecisionClass
 
         void GetTwist(double r, double theta)
         {
-            //cout << "r is: " << r << endl;
+            //cout << "r is: "        << r << endl;
+            //cout << "theta is: "    << theta << endl;
+
             // if r is more visualized in the left side and still is almost vertical.
             if ((r <= (imgCols*0.5-50)) && ((theta >= 80) && (theta <= 100)))
             {
-                //cout << "line is in left side and vertical" << endl;
+                cout << "line is in left side and vertical" << endl;
                 twistStamped.twist.angular.z = angular_vel1;
                 twistStamped.twist.linear.x = linear_vel;
+
                 //cout << "twistStamped.twist.angular.z = " << twistStamped.twist.angular.z << endl;
                 //cout << "twistStamped.twist.linear.x = " << twistStamped.twist.linear.x << endl;
                 //cout << "\n" << endl;
@@ -153,7 +156,7 @@ class DecisionClass
             // else if r is more visualized in the right side and still is almost vertical.
             else if ((r >= (imgCols*0.5+50)) && ((theta >= 80) && (theta <= 100)))
             {
-                //cout << "line is in right side and vertical" << endl;
+                cout << "line is in right side and vertical" << endl;
                 twistStamped.twist.angular.z = -angular_vel1;
                 twistStamped.twist.linear.x = linear_vel;
                 //cout << "twistStamped.twist.angular.z = " << twistStamped.twist.angular.z << endl;
@@ -166,7 +169,7 @@ class DecisionClass
             {
                 if ((r <= (imgCols*0.5-50)) && (theta <= 85))
                 {
-                    //cout << "line is in the left side and tilted to the right" << endl;
+                    cout << "line is in the left side and tilted to the right" << endl;
 
                     if((theta <= 85) && (theta >= 70))
                     {
@@ -195,7 +198,7 @@ class DecisionClass
                 }
                 else if ((r <= (imgCols*0.5-50)) && (theta >= 95))
                 {
-                    //cout << "line is in the left side and tilted to the left" << endl;
+                    cout << "line is in the left side and tilted to the left" << endl;
 
                     if((theta >= 100) && (theta <= 110))
                     {
@@ -224,8 +227,7 @@ class DecisionClass
                 }
                 else if ((r >= (imgCols*0.5+50)) && (theta <= 85))
                 {
-                    //cout << "line is in the right side and tilted to the right" << endl;
-                    //cout << "\n" << endl;
+                    cout << "line is in the right side and tilted to the right" << endl;
 
                     if((theta <= 85) && (theta >= 70))
                     {
@@ -254,8 +256,7 @@ class DecisionClass
                 }
                 else if ((r >= (imgCols*0.5+50)) && (theta >= 95))
                 {
-                    //cout << "line is in the right side and tilted to the left" << endl;
-                    //cout << "\n" << endl;
+                    cout << "line is in the right side and tilted to the left" << endl;
 
                     if((theta >= 100) && (theta <= 110))
                     {
@@ -284,7 +285,7 @@ class DecisionClass
                 }
                 else
                 {
-                    //cout << "All perfect ..." << endl;
+                    cout << "All perfect ..." << endl;
                     twistStamped.twist.angular.z = angular_stopped;
                     twistStamped.twist.linear.x = linear_vel;
                     //cout << "twistStamped.twist.angular.z = " << twistStamped.twist.angular.z << endl;
@@ -297,18 +298,18 @@ class DecisionClass
         // The very simple state machine. State 1 = follow_line, state 2 = end_of_line, state 3 = turning_180, state 4 = start_of_line
         unsigned char CheckForEndOfLine()
         {
-            // State 0
+            // State 1
             if (end_of_line_flag == false)
             {
                 //cout << "The end_of_line_flag = false" << endl;
-                GetTwist(r, theta);
+
                 return follow_line_state;
             }
             else // Then we are at a end_of_line. And we should start turning 180 degree
             {
                 // Since we entered the end_of_line, we return 1 and goes to
                 // the end_of_line_state.
-                cout << "The end_of_line_flag = true" << endl;
+                //cout << "The end_of_line_flag = true" << endl;
                 return end_of_line_state;
             }
         }
@@ -331,8 +332,6 @@ class DecisionClass
 
         void PublishTwist()
         {
-            twistStamped.twist.angular.z = angular_stopped;
-            twistStamped.twist.linear.x = linear_vel;
             cmd_vel_pub.publish(twistStamped);
             cmd_vel_vision_pub.publish(twistStamped);
         }
@@ -440,7 +439,7 @@ int main(int argc, char **argv)
 
     //ros::NodeHandle n;
     // Try to set the loop rate down to avoid the watchdog timer to set linary and velocity to zero.
-    ros::Rate loop_rate(20);
+    ros::Rate loop_rate(100);
 
     // Here we initialize the state machine
     dc.current_state = follow_line_state;
@@ -451,26 +450,38 @@ int main(int argc, char **argv)
         switch(dc.current_state)
         {
             case follow_line_state:
-                //cout << "We are in follow_line state" << endl;
+                // When the robot is inside follow_line_state it use the data received from vision,
+                // to calculate the twist messeges
+                //cout << "r is " << dc.r << endl;
+                //cout << "theta is: " << dc.theta << endl;
+                dc.GetTwist(dc.r, dc.theta);
+
+                // Turning the robot to positive
+                //dc.twistStamped.twist.angular.z = 0.2;
+
+
+                // And then we publish that twist
+                dc.PublishTwist();
 
                 // Check if the robot has in end_of_line
                 dc.current_state = dc.CheckForEndOfLine();
 
-                dc.PublishTwist();
-
+                // Check which state we are in
                 dc.DebugState(dc.current_state);
 
                 // Drive forward a little bit, to get out of the green line
-                //dc.DriveRobotForward(2);
+                //dc.DriveRobotForward(1);
+
             break;
 
             case end_of_line_state:
-                cout << "We are in end_of_line state" << endl;
-
                 // To be sure, that the robot do not just jump to end_of_line_state,
                 // in the transient response, we check again if we are in that state.
                 // Check if the robot has in end_of_line
                 dc.current_state = dc.CheckForEndOfLine();
+
+                // Check which state we are in
+                dc.DebugState(dc.current_state);
 
                 // Then stop the robot for 1 secound.
                 dc.StopRobot();
@@ -510,6 +521,9 @@ int main(int argc, char **argv)
                 // And then go to the follow_line_state
                 dc.current_state = follow_line_state;
             break;
+
+            default:
+                cout << "We got into default state" << endl;
         }
 
         //cout << "We do a spinOnce here" << endl;
