@@ -8,6 +8,8 @@
 #include <sstream>
 using namespace std;                   // Added to avoid typing std::function all over the place, like std::cout and std::endl
 
+#include <std_msgs/Char.h>                      // Added to subscribe on keyinputs
+
 // Using the simulated input image
 //#define imgCols 1088
 //#define imgRows 612
@@ -47,6 +49,7 @@ class DecisionClass
     // Declare the subscribers
     ros::Subscriber vision_sub;
     ros::Subscriber orientation_sub;
+    ros::Subscriber keyboard_sub;
 
     ///////////////////////////////////////////////////////////////////
     // Private member functions
@@ -61,6 +64,7 @@ class DecisionClass
         double r, theta, yaw;
         bool end_of_line_flag;
         unsigned char current_state;
+        unsigned int keyInput;
 
         double beginDegree;
         double endDegree;
@@ -82,6 +86,7 @@ class DecisionClass
             // Initialize the subscribers in the constructor
             vision_sub = n.subscribe("/vision", 1000, &DecisionClass::vision_CallBack, this);
             orientation_sub = n.subscribe("/orientation", 1000, &DecisionClass::orientation_CallBack, this);
+            keyboard_sub = n.subscribe("/fmHMI/keyboard", 1000, &DecisionClass::keyboard_CallBack, this);
 
             /**
            * The advertise() function is how you tell ROS that you want to
@@ -109,6 +114,15 @@ class DecisionClass
         ~DecisionClass()
         {
 
+        }
+
+        // The keyboard callback function
+
+        void keyboard_CallBack(const std_msgs::Char::ConstPtr& msg)
+        {
+            cout << "We are inside the keyboard cb function" << endl;
+            keyInput = msg -> data;
+            cout << "KeyInput is: " << keyInput << endl;
         }
 
         // The vision callback function
@@ -400,7 +414,7 @@ class DecisionClass
 
                 twistStamped.twist.angular.z = -angular_vel3;
                 twistStamped.twist.linear.x = linear_stopped;
-                ros::Duration(0.01).sleep(); // sleep for 10 ms second
+                //ros::Duration(0.01).sleep(); // sleep for 10 ms second
                 PublishTwist();
                 return turning_state;
             }
@@ -446,84 +460,93 @@ int main(int argc, char **argv)
 
     while (ros::ok())
     {
-        // State machine
-        switch(dc.current_state)
+
+        // Check on if the user has entered an "e" into the system.
+        // If this is true, we go to the state machine
+        // else we dont do anything...
+        if(dc.keyInput == 101)
         {
-            case follow_line_state:
-                // When the robot is inside follow_line_state it use the data received from vision,
-                // to calculate the twist messeges
-                //cout << "r is " << dc.r << endl;
-                //cout << "theta is: " << dc.theta << endl;
-                dc.GetTwist(dc.r, dc.theta);
+            //cout << " We received and e or 101" << endl;
 
-                // Turning the robot to positive
-                //dc.twistStamped.twist.angular.z = 0.2;
+            // State machine
+            switch(dc.current_state)
+            {
+                case follow_line_state:
+                    // When the robot is inside follow_line_state it use the data received from vision,
+                    // to calculate the twist messeges
+                    //cout << "r is " << dc.r << endl;
+                    //cout << "theta is: " << dc.theta << endl;
+                    dc.GetTwist(dc.r, dc.theta);
 
+                    // Turning the robot to positive
+                    //dc.twistStamped.twist.angular.z = 0.2;
 
-                // And then we publish that twist
-                dc.PublishTwist();
+                    // And then we publish that twist
+                    dc.PublishTwist();
 
-                // Check if the robot has in end_of_line
-                dc.current_state = dc.CheckForEndOfLine();
+                    // Check if the robot has in end_of_line
+                    dc.current_state = dc.CheckForEndOfLine();
 
-                // Check which state we are in
-                dc.DebugState(dc.current_state);
+                    // Check which state we are in
+                    dc.DebugState(dc.current_state);
 
-                // Drive forward a little bit, to get out of the green line
-                //dc.DriveRobotForward(1);
+                    // Drive forward a little bit, to get out of the green line
+                    //dc.DriveRobotForward(1);
 
-            break;
+                break;
 
-            case end_of_line_state:
-                // To be sure, that the robot do not just jump to end_of_line_state,
-                // in the transient response, we check again if we are in that state.
-                // Check if the robot has in end_of_line
-                dc.current_state = dc.CheckForEndOfLine();
+                case end_of_line_state:
+                    // To be sure, that the robot do not just jump to end_of_line_state,
+                    // in the transient response, we check again if we are in that state.
+                    // Check if the robot has in end_of_line
+                    dc.current_state = dc.CheckForEndOfLine();
 
-                // Check which state we are in
-                dc.DebugState(dc.current_state);
+                    // Check which state we are in
+                    dc.DebugState(dc.current_state);
 
-                // Then stop the robot for 1 secound.
-                dc.StopRobot();
-                ros::Duration(1).sleep();
+                    // Then stop the robot for 1 secound.
+                    dc.StopRobot();
+                    ros::Duration(1).sleep();
 
-                // And then go to the turning_state
-                //dc.current_state = dc.WaitForTurning(2);
+                    // Store the yaw angle just before we start turning
+                    dc.beginDegree = dc.yaw;
 
-                // Store the yaw angle just before we start turning
-                //dc.beginDegree = dc.yaw;
+                    // And then go to the turning_state
+                    //dc.current_state = dc.WaitForTurning(2);
+                    dc.current_state = turning_state;
 
-            break;
+                break;
 
-            case turning_state:
-                cout << "We are in turning_state" << endl;
+                case turning_state:
+                    // Turning the robot left around it own axis, hardcoded to approximately 180 degree
+                    // dc.TurnRobotLeft(6.3);
 
-                // Turning the robot left around it own axis, hardcoded to approximately 180 degree
-                // dc.TurnRobotLeft(6.3);
+                    // Turn until the desired argument angle has been reached. Measured by the IMU
+                    dc.current_state = dc.CheckTurningAngleIMU(160, dc.beginDegree);
 
-                // Instead using the gyro to check when we have reached 180 degree approximately.
+                break;
 
-                // Turn until the desired argument angle has been reached. Measured by the IMU
-                dc.current_state = dc.CheckTurningAngleIMU(160, dc.beginDegree);
+                case start_of_line_state:
+                    //cout << "We are in start_of_line_state" << endl;
 
-            break;
+                    // Drive forward a little bit, to get out of the green line
+                    //dc.DriveRobotForward(1);
 
-            case start_of_line_state:
-                cout << "We are in start_of_line_state" << endl;
+                    // Then stop the robot for 1 secound.
+                    dc.StopRobot();
+                    ros::Duration(1).sleep();
 
-                // Drive forward a little bit, to get out of the green line
-                dc.DriveRobotForward(1);
+                    // And then go to the follow_line_state
+                    dc.current_state = follow_line_state;
+                break;
 
-                // Then stop the robot for 1 secound.
-                dc.StopRobot();
-                ros::Duration(1).sleep();
-
-                // And then go to the follow_line_state
-                dc.current_state = follow_line_state;
-            break;
-
-            default:
-                cout << "We got into default state" << endl;
+                default:
+                    cout << "We got into default state" << endl;
+            }
+        }
+        else
+        {
+            cout << "Has not received any input yet" << endl;
         }
 
         //cout << "We do a spinOnce here" << endl;
