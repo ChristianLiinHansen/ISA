@@ -405,27 +405,101 @@ class DecisionClass
             }
         }
 
-        unsigned char CheckTurningAngleIMU(double degree, double beginDegree)
+        int ModNeg(double b, double m)
         {
-            if(fabs((beginDegree - yaw)) <= degree)
-            {
-                cout << "beginDegree was: " << beginDegree << endl;
-                cout << "endDegree is:" << yaw << endl;
+            cout << "b is: " << b << endl;
+            cout << "m is: " << m << endl;
+            return b-m*floor(b/m);
+        }
 
-                twistStamped.twist.angular.z = -angular_vel3;
-                twistStamped.twist.linear.x = linear_stopped;
-                //ros::Duration(0.01).sleep(); // sleep for 10 ms second
-                PublishTwist();
-                return turning_state;
+        unsigned char CheckTurningAngleIMU(int desiredDegree, double beginDegree)
+        {          
+            //Added 180 to yaw and beginDegree have degrees between 0-360 degree
+            double yawNorm = yaw + 180;
+            double beginDegreeNorm = beginDegree + 180;
+
+            cout << "yawNorm is: " << yawNorm << endl;
+            cout << "beginDegreeNorm is: " << beginDegreeNorm << endl;
+
+            static int diff = 0;
+            static int yawPre = 0;
+            static int yawAcc = 0;
+
+            // Still some work to fix here...
+            // 21/01-2015
+            diff = abs(yawNorm - beginDegreeNorm);
+            yawPre = yawNorm;
+
+            if(diff < desiredDegree)
+            {
+                cout << "Difference is: " << diff << endl;
+                cout << "beginDegreeNorm is: " << beginDegreeNorm << endl;
             }
             else
             {
-                // Here we assume that after the IMU has turned 180 degree, we will spot
-                // the green row.
-                PublishTwist();
-                return start_of_line_state;
+                cout << "Difference is: " << diff << endl;
+                cout << "beginDegreeNorm is: " << beginDegreeNorm << endl;
             }
+
+            return turning_state;
         }
+//            static int yawTemp = 0;
+//            static int yawPre = beginDegree;
+//            yawTemp = yaw - yawPre;
+//            yawPre = yaw;
+
+//            if(abs(yawTemp) < desiredDegree)
+//            {
+//                cout << "beginDegree was: " << beginDegree << endl;
+//                cout << "endDegree is:" << yaw << endl;
+//                twistStamped.twist.angular.z = -angular_vel3;
+//                twistStamped.twist.linear.x = linear_stopped;
+//                return turning_state;
+//            }
+//            else
+//            {
+//                ros::Duration(3).sleep();
+//                return start_of_line_state;
+//            }
+//        }
+
+//            int var;
+
+
+//            var = ((int)beginDegree+180 + desiredDegree) % 360;
+//            cout << "var is: " << var << endl;
+//            cout << "yaw is: " << yaw+180 << endl;
+
+//            if(var > yaw+180)
+//            {
+//                cout << "beginDegree was: " << beginDegree << endl;
+//                cout << "endDegree is:" << yaw << endl;
+
+//                twistStamped.twist.angular.z = -angular_vel3;
+//                twistStamped.twist.linear.x = linear_stopped;
+//                return turning_state;
+//            }
+//            else
+//            {
+//                ros::Duration(3).sleep();
+//                return start_of_line_state;
+//            }
+
+//            if(fabs((beginDegree - yaw)) < desiredDegree)
+//            {
+//                cout << "beginDegree was: " << beginDegree << endl;
+//                cout << "endDegree is:" << yaw << endl;
+
+//                twistStamped.twist.angular.z = -angular_vel3;
+//                twistStamped.twist.linear.x = linear_stopped;
+//                return turning_state;
+//            }
+//            else
+//            {
+//                // Here we assume that after the IMU has turned 180 degree, we will spot
+//                // the green row.
+//                return start_of_line_state;
+//            }
 
         string IntToString (int a)
         {
@@ -439,7 +513,6 @@ class DecisionClass
             string debugState;
             debugState = IntToString((int)state);
             cout << "DEBUG: state is: " << debugState << endl;
-
         }
 };
 
@@ -491,7 +564,10 @@ int main(int argc, char **argv)
                     dc.DebugState(dc.current_state);
 
                     // Drive forward a little bit, to get out of the green line
-                    //dc.DriveRobotForward(1);
+                    //dc.DriveRobotForward(1);'
+
+                    // Debugging. Tested that yaw goes from 0 to 179, and then from -179 to 0.
+                    //cout << "Degree is:" << dc.yaw << endl;
 
                 break;
 
@@ -508,12 +584,12 @@ int main(int argc, char **argv)
                     dc.StopRobot();
                     ros::Duration(1).sleep();
 
-                    // Store the yaw angle just before we start turning
+                    // Store the yaw angle just before we start turning.
                     dc.beginDegree = dc.yaw;
 
                     // And then go to the turning_state
                     //dc.current_state = dc.WaitForTurning(2);
-                    dc.current_state = turning_state;
+                    //dc.current_state = turning_state;
 
                 break;
 
@@ -521,13 +597,22 @@ int main(int argc, char **argv)
                     // Turning the robot left around it own axis, hardcoded to approximately 180 degree
                     // dc.TurnRobotLeft(6.3);
 
+                    // Check which state we are in
+                    dc.DebugState(dc.current_state);
+
                     // Turn until the desired argument angle has been reached. Measured by the IMU
-                    dc.current_state = dc.CheckTurningAngleIMU(160, dc.beginDegree);
+                    dc.current_state = dc.CheckTurningAngleIMU(170, dc.beginDegree);
+
+                    // And then we publish that twist
+                    dc.PublishTwist();
 
                 break;
 
                 case start_of_line_state:
                     //cout << "We are in start_of_line_state" << endl;
+
+                    // Check which state we are in
+                    dc.DebugState(dc.current_state);
 
                     // Drive forward a little bit, to get out of the green line
                     //dc.DriveRobotForward(1);
