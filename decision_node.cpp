@@ -3,11 +3,18 @@
 #include <isa_project/orientation.h>            // Added to include my custom msg file, orientation.msg
 #include <geometry_msgs/Twist.h>                // Added to include the in-built msg file, geometry_msg/Twist.msg
 #include <geometry_msgs/TwistStamped.h>         // Added to include the in-built msg file, geometry_msg/TwistStamped.msg
+
+// OpenCV lib
+#include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/opencv.hpp>
+#include <opencv2/core/core.hpp>
+
 #include <ctime>                                // For time
 #include <cstdio>
 #include <sstream>
 using namespace std;                   // Added to avoid typing std::function all over the place, like std::cout and std::endl
-
+using namespace cv;
 #include <std_msgs/Char.h>                      // Added to subscribe on keyinputs
 
 // Using the simulated input image
@@ -45,6 +52,7 @@ class DecisionClass
     * NodeHandle destructed will close down the node.
     */
     ros::NodeHandle n;
+
 
     // Declare the subscribers
     ros::Subscriber vision_sub;
@@ -412,94 +420,54 @@ class DecisionClass
             return b-m*floor(b/m);
         }
 
+        double Deg2rad(double degree)
+        {
+            return degree*(double)(3.14159265359/180);
+        }
+
+        double Rad2Deg(double rad)
+        {
+            return rad*(double)(180/3.14159265359);
+        }
+
         unsigned char CheckTurningAngleIMU(int desiredDegree, double beginDegree)
         {          
             //Added 180 to yaw and beginDegree have degrees between 0-360 degree
             double yawNorm = yaw + 180;
             double beginDegreeNorm = beginDegree + 180;
 
-            cout << "yawNorm is: " << yawNorm << endl;
-            cout << "beginDegreeNorm is: " << beginDegreeNorm << endl;
+            //cout << "yawNorm is: " << yawNorm << endl;
+            //cout << "beginDegreeNorm is: " << beginDegreeNorm << endl;
+            //cout << "Degree in rad is: " << Deg2rad(beginDegreeNorm) << endl;
 
-            static int diff = 0;
-            static int yawPre = 0;
-            static int yawAcc = 0;
+            Point2d v1, v2;
+            v1.x = cos(Deg2rad(beginDegreeNorm));
+            v1.y = sin(Deg2rad(beginDegreeNorm));
+            v2.x = cos(Deg2rad(yawNorm));
+            v2.y = sin(Deg2rad(yawNorm));
 
-            // Still some work to fix here...
-            // 21/01-2015
-            diff = abs(yawNorm - beginDegreeNorm);
-            yawPre = yawNorm;
+            //cout << "v1 is: " << v1.x << "," << v1.y << endl;
+            //cout << "v2 is: " << v2.x << "," << v2.y << endl;
+            // Find the angle between these two points.
 
-            if(diff < desiredDegree)
+            // http://www.euclideanspace.com/maths/algebra/vectors/angleBetween/
+            double angle = Rad2Deg(acos(v1.dot(v2)));
+            cout << "angle is: " << angle << endl;
+
+            if (angle < desiredDegree)
             {
-                cout << "Difference is: " << diff << endl;
-                cout << "beginDegreeNorm is: " << beginDegreeNorm << endl;
+                cout << "Angle has not been reached: We still turn " << endl;
+                twistStamped.twist.angular.z = -angular_vel3;
+                twistStamped.twist.linear.x = linear_stopped;
+                return turning_state;
             }
             else
             {
-                cout << "Difference is: " << diff << endl;
-                cout << "beginDegreeNorm is: " << beginDegreeNorm << endl;
+                cout << "Done turning... " << endl;
+                ros::Duration(2).sleep();
+                return start_of_line_state;
             }
-
-            return turning_state;
         }
-//            static int yawTemp = 0;
-//            static int yawPre = beginDegree;
-//            yawTemp = yaw - yawPre;
-//            yawPre = yaw;
-
-//            if(abs(yawTemp) < desiredDegree)
-//            {
-//                cout << "beginDegree was: " << beginDegree << endl;
-//                cout << "endDegree is:" << yaw << endl;
-//                twistStamped.twist.angular.z = -angular_vel3;
-//                twistStamped.twist.linear.x = linear_stopped;
-//                return turning_state;
-//            }
-//            else
-//            {
-//                ros::Duration(3).sleep();
-//                return start_of_line_state;
-//            }
-//        }
-
-//            int var;
-
-
-//            var = ((int)beginDegree+180 + desiredDegree) % 360;
-//            cout << "var is: " << var << endl;
-//            cout << "yaw is: " << yaw+180 << endl;
-
-//            if(var > yaw+180)
-//            {
-//                cout << "beginDegree was: " << beginDegree << endl;
-//                cout << "endDegree is:" << yaw << endl;
-
-//                twistStamped.twist.angular.z = -angular_vel3;
-//                twistStamped.twist.linear.x = linear_stopped;
-//                return turning_state;
-//            }
-//            else
-//            {
-//                ros::Duration(3).sleep();
-//                return start_of_line_state;
-//            }
-
-//            if(fabs((beginDegree - yaw)) < desiredDegree)
-//            {
-//                cout << "beginDegree was: " << beginDegree << endl;
-//                cout << "endDegree is:" << yaw << endl;
-
-//                twistStamped.twist.angular.z = -angular_vel3;
-//                twistStamped.twist.linear.x = linear_stopped;
-//                return turning_state;
-//            }
-//            else
-//            {
-//                // Here we assume that after the IMU has turned 180 degree, we will spot
-//                // the green row.
-//                return start_of_line_state;
-//            }
 
         string IntToString (int a)
         {
@@ -564,11 +532,7 @@ int main(int argc, char **argv)
                     dc.DebugState(dc.current_state);
 
                     // Drive forward a little bit, to get out of the green line
-                    //dc.DriveRobotForward(1);'
-
-                    // Debugging. Tested that yaw goes from 0 to 179, and then from -179 to 0.
-                    //cout << "Degree is:" << dc.yaw << endl;
-
+                    //dc.DriveRobotForward(1);
                 break;
 
                 case end_of_line_state:
@@ -589,7 +553,7 @@ int main(int argc, char **argv)
 
                     // And then go to the turning_state
                     //dc.current_state = dc.WaitForTurning(2);
-                    //dc.current_state = turning_state;
+                    dc.current_state = turning_state;
 
                 break;
 
@@ -601,7 +565,7 @@ int main(int argc, char **argv)
                     dc.DebugState(dc.current_state);
 
                     // Turn until the desired argument angle has been reached. Measured by the IMU
-                    dc.current_state = dc.CheckTurningAngleIMU(170, dc.beginDegree);
+                    dc.current_state = dc.CheckTurningAngleIMU(160, dc.beginDegree);
 
                     // And then we publish that twist
                     dc.PublishTwist();
