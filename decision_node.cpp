@@ -32,12 +32,15 @@ using namespace cv;
 
 #define angular_vel1 0.3
 #define angular_vel2 0.4
-#define angular_vel3 0.5
+#define angular_vel3 0.8
 
 #define follow_line_state 1
 #define end_of_line_state 2
 #define turning_state 3
 #define start_of_line_state 4
+
+#define runForwardSec 9
+#define sleepSec 2
 
 class DecisionClass
 {
@@ -52,7 +55,6 @@ class DecisionClass
     * NodeHandle destructed will close down the node.
     */
     ros::NodeHandle n;
-
 
     // Declare the subscribers
     ros::Subscriber vision_sub;
@@ -457,6 +459,7 @@ class DecisionClass
             if (angle < desiredDegree)
             {
                 cout << "Angle has not been reached: We still turn " << endl;
+                //twistStamped.twist.angular.z = -angular_vel3;
                 twistStamped.twist.angular.z = -angular_vel3;
                 twistStamped.twist.linear.x = linear_stopped;
                 return turning_state;
@@ -531,8 +534,6 @@ int main(int argc, char **argv)
                     // Check which state we are in
                     dc.DebugState(dc.current_state);
 
-                    // Drive forward a little bit, to get out of the green line
-                    //dc.DriveRobotForward(1);
                 break;
 
                 case end_of_line_state:
@@ -546,7 +547,10 @@ int main(int argc, char **argv)
 
                     // Then stop the robot for 1 secound.
                     dc.StopRobot();
-                    ros::Duration(1).sleep();
+                    ros::Duration(sleepSec).sleep();
+
+                    // Drive forward a little bit, to get out of the green line
+                    dc.DriveRobotForward(runForwardSec);
 
                     // Store the yaw angle just before we start turning.
                     dc.beginDegree = dc.yaw;
@@ -565,7 +569,7 @@ int main(int argc, char **argv)
                     dc.DebugState(dc.current_state);
 
                     // Turn until the desired argument angle has been reached. Measured by the IMU
-                    dc.current_state = dc.CheckTurningAngleIMU(160, dc.beginDegree);
+                    dc.current_state = dc.CheckTurningAngleIMU(175, dc.beginDegree);
 
                     // And then we publish that twist
                     dc.PublishTwist();
@@ -578,12 +582,12 @@ int main(int argc, char **argv)
                     // Check which state we are in
                     dc.DebugState(dc.current_state);
 
-                    // Drive forward a little bit, to get out of the green line
-                    //dc.DriveRobotForward(1);
+                    // Drive forward a little bit, to get into the green line
+                    //dc.DriveRobotForward(runForwardSec);
 
                     // Then stop the robot for 1 secound.
                     dc.StopRobot();
-                    ros::Duration(1).sleep();
+                    ros::Duration(sleepSec).sleep();
 
                     // And then go to the follow_line_state
                     dc.current_state = follow_line_state;
@@ -595,7 +599,7 @@ int main(int argc, char **argv)
         }
         else
         {
-            cout << "Has not received any input yet" << endl;
+            //cout << "Has not received any input yet" << endl;
         }
 
         //cout << "We do a spinOnce here" << endl;

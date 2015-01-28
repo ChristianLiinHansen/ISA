@@ -21,6 +21,102 @@
 using namespace cv;
 using namespace std;
 
+int Counter = 0;
+
+class VisionFiltering
+{
+    private:
+    ///////////////////////////////////////////////////////////////////
+    // Private variables
+    ///////////////////////////////////////////////////////////////////
+
+
+
+    ///////////////////////////////////////////////////////////////////
+    // Private member functions
+    ///////////////////////////////////////////////////////////////////
+
+
+
+
+    public:
+    ///////////////////////////////////////////////////////////////////
+    // Public variables
+    ///////////////////////////////////////////////////////////////////
+
+    vector<int> buffer; // Needs to be public
+
+    ///////////////////////////////////////////////////////////////////
+    // Public member functions
+    ///////////////////////////////////////////////////////////////////
+
+    VisionFiltering()
+    {
+
+    }
+
+    ~VisionFiltering()
+    {
+
+    }
+
+    void PushBackAngle(int inputToBuffer)
+    {
+        buffer.push_back(inputToBuffer);
+    }
+
+    void DeleteLastAngle()
+    {
+        buffer.erase(buffer.begin());
+    }
+
+    void PrintVector(vector<int> inputVector)
+    {
+        // print out content:
+        for (std::vector<int>::iterator it=inputVector.begin(); it!=inputVector.end(); ++it)
+        {
+            cout << ' ' << *it;
+        }
+        cout << '\n';
+    }
+
+    int RunningMedianFilter(int inputAngleFromVision, unsigned int size)
+    {
+        // Store the input angle into the public buffer, called buffer
+        PushBackAngle(inputAngleFromVision);
+
+        if(buffer.size() >= size)
+        {
+            int medianAngle;
+            vector<int> tempVector;
+
+            // Store the vector buffer into a temp vector
+            tempVector = buffer;
+
+            //cout << "Temp vector contains" << endl;
+            //PrintVector(tempVector);
+
+            // Sort the temp vector in ascending order
+            sort(tempVector.begin(), tempVector.end());
+
+            // Take out the median element of the temp vector.
+            //Size devided by 2 will with the integer automatically floor down to the middle element in the temp vector
+            medianAngle = tempVector[size/2];
+
+            // Remove the oldest element in the buffer
+            DeleteLastAngle();
+
+            return medianAngle;
+        }
+        else
+        {
+            // Return 0 to indicate that the true median angle has not been updated yet.
+            return 0;
+        }
+    }
+
+};
+
 vector<Mat> GetRGB(Mat image)
 {
 	vector<Mat> rgb_channel;
@@ -548,7 +644,9 @@ Mat GetImageFromCamera(VideoCapture video, bool flag)
     else
     {
         // Else read the image taking from a smpartphone as a still image, that had higher resoution than the webcamera
-        image = imread("/home/christian/workspace_eclipseLuna/DisplayImage/src/indoor4.jpg", CV_LOAD_IMAGE_COLOR);
+        //image = imread("/home/christian/workspace_eclipseLuna/DisplayImage/src/indoor4.jpg", CV_LOAD_IMAGE_COLOR);
+        //image = imread("/home/christian/workspace_eclipseLuna/DisplayImage/src/indoorFinal1.jpg", CV_LOAD_IMAGE_COLOR);
+        image = imread("/home/christian/workspace_eclipseLuna/DisplayImage/src/RealField1", CV_LOAD_IMAGE_COLOR);
 
         //cout << "Dimensions of still image is: " << image.size() << endl;
         // And then we need to resize it a bit with a factor 3.
@@ -589,42 +687,43 @@ Mat DrawCoordinate(Mat image)
 // The main function
 ///////////////////////////////////////////////////////////
 
-class TestClass
-{
-    public:
-    void coolSaying()
-    {
-        cout << "TEEEESSSTTTT of function" << endl;
-    }
-
-
-};
-
 bool videoFlag = false;
 
 CvCapture* InitPlayBackVideo()
 {
-    CvCapture* capture = cvCreateFileCapture("/home/christian/workspace_eclipseLuna/DisplayImage/src/endOfLineTestVideo.mp4");
+    CvCapture* capture = cvCreateFileCapture("/home/christian/workspace_eclipseLuna/DisplayImage/src/indoor8.mp4");
 
     if(!capture)
     {
         printf("Video Not Opened\n");
     }
-
     return capture;
 }
 
 IplImage* PlayBackVideo(CvCapture* capture)
 {
+    //A check if the playback movie has stopped
     IplImage* frame = cvQueryFrame(capture);
-    cvWaitKey(10);
+
+    if(!frame)
+    {
+        cout << "Movie has stopped, so we re-initialize the movie again" << endl;
+        CvCapture* capture = cvCreateFileCapture("/home/christian/workspace_eclipseLuna/DisplayImage/src/indoor8.mp4");
+        if(!capture)
+        {
+            printf("Video Not Opened\n");
+        }
+        frame = NULL;
+        frame = cvQueryFrame(capture);
+    }
+
+    cvWaitKey(20);
     return frame;
 }
 
 int main(int argc, char **argv)
 {
-    TestClass object;
-    object.coolSaying();
+    VisionFiltering vf;
 
     // Testing the playbackfile
     CvCapture* capture = InitPlayBackVideo();
@@ -683,6 +782,7 @@ int main(int argc, char **argv)
 	int count = 0;
 	double r;
 	double theta;
+    double medianTheta;
 	int iAngle = 180;
     int thresholdValue = 50;
     int xt = 0;
@@ -709,7 +809,9 @@ int main(int argc, char **argv)
         Mat inputImage;
         // Set boolean to true, to get images from video. Else set to false to get image from still image
         inputImage = GetImageFromCamera(video, videoFlag);
-        //inputImage = cvQueryFrame(capture);
+
+        // Get the images from a video that was recorded earlier
+        //inputImage = PlayBackVideo(capture);
 
         // Set the xt_offset and yt_offset once
         if(flag)
@@ -720,6 +822,8 @@ int main(int argc, char **argv)
             yt = yt_offset;
             flag = false;
         }
+        // Debuggin. Just to see what the dimension of the input image is.
+        //cout << "Input image has dimension: " << inputImage.cols << " x " << inputImage.rows << endl;
 
         // Here we do the rotation of the image
         createTrackbar("Angle", "RANSAC_image", &iAngle, 360);
@@ -798,7 +902,7 @@ int main(int argc, char **argv)
 
                 // Finding lines in the images using RANSAC
                 int triesLines = 1000; // Tested with 1000
-                double pendicularDistance = 20.0; // Tested with 10.0
+                double pendicularDistance = 50.0; // Tested with 10.0 // Setted it up to 50 with fake plants
                 vector < vector < Point > > resultFromRANSAC;
                 resultFromRANSAC = RANSAC_CLH(triesLines, pendicularDistance, circle_centroids);
 
@@ -820,9 +924,14 @@ int main(int argc, char **argv)
                 theta = returnVector.at(2);
                 r = GetR(bestPoints.at(0), bestPoints.at(1));
 
+                // This is here where we have the input theta, and wants to store that into a buffer in the median filter
+                // and then outputs the median theta of a buffer of a given size.
+
+                medianTheta = vf.RunningMedianFilter(theta,11);
                 // Add the values directly in the input image
                 AddInlierText(RANSAC_image, RANSAC_image.rows/15, RANSAC_image.rows/15, "r: ", (int)r);
                 AddInlierText(RANSAC_image, RANSAC_image.rows/8, RANSAC_image.rows/8, "theta: ", (int)theta);
+                AddInlierText(RANSAC_image, RANSAC_image.rows/15, RANSAC_image.rows/6, "Median theta: ", (int)medianTheta);
 
                 // Plot the r and theta in the terminal
                 //cout << "r: " << r << "\t" << " theta (degree): " << theta << endl;
@@ -837,7 +946,8 @@ int main(int argc, char **argv)
 
             // Publish the r and theta trough ROS
             msg_vision.r = r;
-            msg_vision.theta = theta;
+            //msg_vision.theta = theta;
+            msg_vision.theta = medianTheta; // Here we publish the median filtered angle instead of the noisy theta
 
             // Publish the boolean end of line
             // And then we send it on the test_pub topic
